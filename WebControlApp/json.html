@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MQTT/WSS在线测试</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <!-- Custom Styles theme -->
+    <style>
+        body {
+            padding-top: 50px;
+            padding-bottom: 10px;
+            background: #eee6cb;
+        }
+
+        .navbar {
+            margin-bottom: 20px;
+        }
+
+        .navbar-inner {
+            background-color: #121320;
+        }
+
+        .navbar .nav>li>a {
+            color: #eee6cb;
+        }
+
+        a.navbar-brand {
+            margin-left: 5px;
+            padding: 0;
+            font-size: 15px;
+        }
+
+        .navbar-inverse .navbar-brand {
+            color: #eee6cb;
+        }
+
+        * {
+            -webkit-border-radius: 0 !important;
+            -moz-border-radius: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        .panel-heading {
+            color: #5e351a;
+        }
+
+        .subtext {
+            color: #A0A0A0;
+        }
+
+        .right {
+            float: right;
+        }
+
+        table {
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+
+        table.tableSection {
+            display: table;
+            width: 100%;
+        }
+
+        table.tableSection thead,
+        table.tableSection tbody {
+            float: left;
+            width: 100%;
+        }
+
+        table.tableSection tbody {
+            overflow: auto;
+            height: 150px;
+        }
+
+        table.tableSection tr {
+            width: 100%;
+            display: table;
+            text-align: center;
+        }
+
+        table.tableSection th,
+        table.tableSection td {
+            width: 25%;
+            text-align: center;
+        }
+
+        .panel-heading .chevron-toggle {
+            color: #333;
+        }
+
+        .panel-heading .chevron-toggle:after {
+            font-family: 'Glyphicons Halflings';
+            content: "\e114";
+            float: right;
+            color: grey;
+        }
+
+        .panel-heading .chevron-toggle.collapsed:after {
+            content: "\e080";
+        }
+
+        .fixed-height-panel {
+            min-height: 250px;
+            max-height: 250px;
+        }
+
+        .special-checkbox {
+            display: block;
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Nav Bar -->
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container">
+                    <div class="navbar-header">
+                        <a class="navbar-brand" href="#">
+                            <img alt="通信猫 共享MQTT服务器" src="img/logo.png">
+                        </a>
+                        <span class="navbar-brand">Json MQTT/WSS在线测试</span>
+
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <!-- Nav Bar End -->
+
+        <!-- Connection panel -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <span id="connectionStatus">Connection - Disconnected. </span><span>(测试服务器：mq.tongxinmao.com
+                            TCP端口18830 WS端口18832 用户/密码:空 。)</span>
+                    </div>
+                    <div class="panel-body" id="serverCollapse">
+
+                        <form>
+                            <div class="row">
+
+                                <div class="col-lg-3 col-md-3">
+                                    <div class="form-group">
+                                        <label for="hostInput">Host主机</label>
+                                        <input type="text" class="form-control" placeholder="120.76.100.197"
+                                            id="hostInput" value="amzvemj.iot.gz.baidubce.com">
+                                    </div>
+                                </div>
+                                <div class="col-lg-1 col-md-2">
+                                    <div class="form-group">
+                                        <label for="portInput" title="TCP端口18830 WS端口18832">Port端口</label>
+                                        <input type="text" class="form-control" id="portInput" value="443">
+                                    </div>
+
+                                </div>
+                                <div class="col-lg-2 col-md-2">
+                                    <div class="form-group">
+                                        <label for="userInput">Username用户名</label>
+                                        <input type="text" class="form-control" id="userInput" value="thingidp@amzvemj|tank1|0|MD5">
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-2 col-md-2">
+                                    <div class="form-group">
+                                        <label for="passInput">Password密码</label>
+                                        <input type="password" class="form-control" id="passInput"
+                                            value="b2c233b4b1d09a42ab4c8293794ec25a">
+                                    </div>
+                                </div>
+
+
+                                <div class="col-lg-1 col-md-1">
+                                    <div class="form-group">
+                                        <label for="clientConnectButton"></label>
+                                        <a id="clientConnectButton" class="btn btn-success"
+                                            onclick="connectionToggle();">Connect连接</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-lg-2 col-md-2">
+                                    <div class="form-group">
+                                        <label for="clientIdInput">Client ID</label>
+                                        <input type="text" class="form-control" id="clientIdInput"
+                                            value="wss-tank1">
+                                    </div>
+                                </div>
+                                <div class="col-lg-2 col-md-2">
+                                    <div class="form-group">
+                                        <label for="pathInput">Path路径</label>
+                                        <input type="text" class="form-control" id="pathInput" value="\mqtt">
+                                    </div>
+                                </div>
+
+
+                                <div class="col-lg-2 col-md-2">
+                                    <div class="form-group">
+                                        <label for="keepAliveInput">Keep-Alive保活</label>
+                                        <input type="text" class="form-control" id="keepAliveInput" value="60">
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-1 col-md-1">
+                                    <div class="form-group">
+                                        <label for="timeoutInput">Timeout</label>
+                                        <input type="text" class="form-control" id="timeoutInput" value="5">
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-1 col-md-1">
+                                    <div class="form-group">
+                                        <label for="sslInput">TLS(WSS)</label>
+                                        <input type="checkbox" class="special-checkbox" id="sslInput" value="" checked>
+                                    </div>
+                                </div>
+                                <div class="col-lg-2 col-md-2">
+                                    <div class="form-group">
+                                        <label for="cleanSessionInput">Clean Session</label>
+                                        <input type="checkbox" class="special-checkbox" id="cleanSessionInput" value="">
+                                    </div>
+
+                                </div>
+                            </div>
+
+
+                            <div class="row" style="display: none;">
+                                <div class="col-lg-3 col-md-3">
+                                    <div class="form-group">
+                                        <label for="lwtInput">Last Will Topic</label>
+                                        <input type="text" class="form-control" id="lwtInput">
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-1 col-md-1">
+                                    <div class="form-group">
+                                        <label for="lwQosInput">QoS</label>
+                                        <select class="form-control" id="lwQosInput">
+                                            <option>0</option>
+                                            <option>1</option>
+                                            <option>2</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-lg-1 col-md-1">
+                                    <div class="form-group">
+                                        <label for="lwRetainInput">Retain</label>
+                                        <input type="checkbox" class="special-checkbox" id="lwRetainInput" value="">
+                                    </div>
+                                </div>
+                                <div class="col-lg-7 col-md-7">
+                                    <div class="form-group">
+                                        <label for="lwMInput">Last Will Message</label>
+                                        <textarea class="form-control" id="lwMInput" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                    </form>
+                </div>
+                <!-- End of Connection panel -->
+
+
+
+
+                <div class="row">
+                    <!-- Subscription panel -->
+                    <div class="col-md-6 col-md-6">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                Subscribe订阅
+                            </div>
+                            <div class="panel-body" id="subscribeCollapse">
+
+                                <form class="form-horizontal">
+
+                                    <div class="form-group">
+                                        <label for="subscribeTopicInput" class="col-sm-3 control-label">Topic主题</label>
+                                        <div class="col-sm-9">
+                                            <input type="text" class="form-control" id="subscribeTopicInput"
+                                                value="tank1/cmd" disabled>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subscribeQosInput" class="col-sm-3 control-label">QoS服务质量</label>
+                                        <div class="col-sm-9">
+                                            <select class="form-control" id="subscribeQosInput" disabled>
+                                                <option value="0">0最多一次的传输</option>
+                                                <option value="1">1至少一次的传输</option>
+                                                <option value="2">2只有一次的传输</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-sm-offset-3 col-sm-9">
+                                            <button id="subscribeButton" type="button" class="btn btn-info"
+                                                onclick="subscribe();" disabled>Subscribe订阅</button>
+                                            <button id="unsubscribeButton" type="button" class="btn btn-default"
+                                                onclick="unsubscribe();" disabled>Unsubscribe取消订阅</button>
+                                        </div>
+                                    </div>
+                                </form>
+
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End of Subscription panel -->
+                    <!-- Publish panel -->
+                    <div class="col-md-6">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                Publish发布
+                            </div>
+                            <div class="panel-body" id="publishCollapse">
+                                <form>
+                                    <div class="row">
+                                        <div class="col-lg-5 col-md-5">
+                                            <div class="form-group">
+                                                <label for="publishTopicInput">Topic主题</label>
+                                                <input type="text" class="form-control" id="publishTopicInput"
+                                                    value="tank1/cmd" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-3">
+                                            <div class="form-group">
+                                                <label for="publishQosInput">QoS</label>
+                                                <select class="form-control" id="publishQosInput" disabled>
+                                                    <option value="0">0最多一次的传输</option>
+                                                    <option value="1" selected>1至少一次的传输</option>
+                                                    <option value="2">2只有一次的传输</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-1 col-md-1">
+                                            <div class="form-group">
+                                                <label for="publishRetainInput">Retain</label>
+                                                <input type="checkbox" class="special-checkbox" id="publishRetainInput"
+                                                    value="" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-1 col-md-1">
+                                            <div class="form-group">
+                                                <label for="publishButton"></label>
+                                                <button id="publishButton" type="button" class="btn btn-primary"
+                                                    onclick="publish();" disabled>Publish发布</button>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+
+                                    <div class="row">
+                                        <!--
+                                    <div class="col-lg-2 col-md-2">
+                                        <div class="form-group">
+                                            <label for="publishRetainInput">HEX发送</label>
+                                            <input type="checkbox" class="special-checkbox" id="publishHexInput" value="" >
+                                        </div>
+                                    </div>
+-->
+                                        <div class="col-lg-12">
+                                            <div class="form-group">
+                                                <label for="publishMessageInput">Message消息</label>
+                                                <textarea class="form-control" id="publishMessageInput"
+                                                    rows="1">11 22 33</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End of Publish panel -->
+                </div>
+                <div class="row">
+
+
+                    <div class="col-md-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <a class="chevron-toggle" data-toggle="collapse" data-target="#subscriptionsCollapse"
+                                    href="#collapseOne">
+                                    Last Messages最近消息
+                                </a>
+                            </div>
+                            <div class="panel-body collapse in fixed-height-panel" id="subscriptionsCollapse">
+                                <table class="table table-hover table-condensed tableSection" id="lastMessageTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Topic</th>
+                                            <th>Payload</th>
+                                            <th>Time</th>
+                                            <th>QoS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    </tbody>
+
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="row">
+
+                    <div class="col-md-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <a class="chevron-toggle" data-toggle="collapse" data-target="#historyCollapse"
+                                    href="#collapseOne">
+                                    History历史消息
+                                </a>
+                            </div>
+                            <div class="panel-body collapse in fixed-height-panel" id="historyCollapse">
+                                <span class="right"><a href="#" onclick="clearHistory()">Clear History清空</a></span>
+                                <table class="table table-hover table-condensed  tableSection"
+                                    id="incomingMessageTable">
+
+                                    <thead>
+                                        <tr>
+                                            <th>Topic</th>
+                                            <th>Payload</th>
+                                            <th>Time</th>
+                                            <th>Qos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Javascript used for Bootstrap Theme -->
+            <script src="js/jquery.min.js"></script>
+            <script src="js/bootstrap.min.js"></script>
+            <script src="js/mqttws31.js"></script>
+
+            <!-- Source Paho MQTT Client
+        <script src="http://tongxinmao.com/assets/js/mqttws31.js" type="text/javascript"></script>
+      -->
+            <!--<script src="../src/paho-mqtt.js"></script>-->
+
+            <!-- Utility Javascript src="utility.js"-->
+            <script>
+
+                /*
+                 Eclipse Paho MQTT-JS Utility
+                 This utility can be used to test the Eclipse Paho MQTT Javascript client.
+                 */
+
+                // Create a client instance
+                client = null;
+
+                connected = false;
+
+                // called when the client connects
+                function onConnect(context) {
+                    // Once a connection has been made, make a subscription and send a message.
+                    console.log("Client Connected");
+                    var statusSpan = document.getElementById("connectionStatus");
+                    statusSpan.innerHTML = "已连接 Connected to: " + context.invocationContext.host + ':' + context.invocationContext.port + context.invocationContext.path + ' as ' + context.invocationContext.clientId;
+                    connected = true;
+                    setFormEnabledState(true);
+
+
+                }
+
+                function onFail(context) {
+                    console.log("Failed to connect");
+                    var statusSpan = document.getElementById("connectionStatus");
+                    statusSpan.innerHTML = "连接失败Failed to connect: " + context.errorMessage;
+                    connected = false;
+                    setFormEnabledState(false);
+                }
+
+                // called when the client loses its connection
+                function onConnectionLost(responseObject) {
+                    connected = false;
+                    alert("连接已断开");
+                    setFormEnabledState(false);
+                    var statusSpan = document.getElementById("connectionStatus");
+                    statusSpan.innerHTML = "连接已断开";
+                    if (responseObject.errorCode !== 0) {
+                        console.log("Connection Lost: " + responseObject.errorMessage);
+                    }
+
+                }
+
+                // called when a message arrives
+                function onMessageArrived(message) {
+                    // console.log('Message Recieved: Topic: ', message.destinationName, '. Payload: ', message.payloadString, '. QoS: ', message.qos);
+                    console.log(message);
+
+                    var now = new Date();
+                    var timestr = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
+
+                    var messageTime = timestr;// new Date().toString();
+                    // Insert into History Table
+                    var table = document.getElementById("incomingMessageTable").getElementsByTagName('tbody')[0];
+                    var row = table.insertRow(0);
+                    row.insertCell(0).innerHTML = message.destinationName;
+                    row.insertCell(1).innerHTML = safe_tags_regex(message);
+                    row.insertCell(2).innerHTML = messageTime;
+                    row.insertCell(3).innerHTML = message.qos;
+
+
+                    if (!document.getElementById(message.destinationName)) {
+                        var lastMessageTable = document.getElementById("lastMessageTable").getElementsByTagName('tbody')[0];
+                        var newlastMessageRow = lastMessageTable.insertRow(0);
+                        newlastMessageRow.id = message.destinationName;
+                        newlastMessageRow.insertCell(0).innerHTML = message.destinationName;
+                        newlastMessageRow.insertCell(1).innerHTML = safe_tags_regex(message);
+                        newlastMessageRow.insertCell(2).innerHTML = messageTime;
+                        newlastMessageRow.insertCell(3).innerHTML = message.qos;
+
+                    } else {
+                        // Update Last Message Table
+                        var lastMessageRow = document.getElementById(message.destinationName);
+                        lastMessageRow.id = message.destinationName;
+                        lastMessageRow.cells[0].innerHTML = message.destinationName;
+                        lastMessageRow.cells[1].innerHTML = safe_tags_regex(message);
+                        lastMessageRow.cells[2].innerHTML = messageTime;
+                        lastMessageRow.cells[3].innerHTML = message.qos;
+                    }
+
+                }
+
+                function connectionToggle() {
+                    if (connected) {
+                        disconnect();
+                    } else {
+                        connect();
+                    }
+                }
+
+
+                function connect() {
+                    var hostname = document.getElementById("hostInput").value;
+                    var port = document.getElementById("portInput").value;
+                    var clientId = document.getElementById("clientIdInput").value;
+
+                    var path = document.getElementById("pathInput").value;
+                    var user = document.getElementById("userInput").value;
+                    var pass = document.getElementById("passInput").value;
+                    var keepAlive = Number(document.getElementById("keepAliveInput").value);
+                    var timeout = Number(document.getElementById("timeoutInput").value);
+                    var ssl = document.getElementById("sslInput").checked;
+                    var cleanSession = document.getElementById("cleanSessionInput").checked;
+                    var lastWillTopic = document.getElementById("lwtInput").value;
+                    var lastWillQos = Number(document.getElementById("lwQosInput").value);
+                    var lastWillRetain = document.getElementById("lwRetainInput").checked;
+                    var lastWillMessage = document.getElementById("lwMInput").value;
+
+
+                    if (path.length > 0) {
+                        client = new Paho.MQTT.Client(hostname, Number(port), path, clientId);
+                    } else {
+                        client = new Paho.MQTT.Client(hostname, Number(port), clientId);
+                    }
+                    console.info('Connecting to Server: Hostname: ', hostname, '. Port: ', port, '. Path: ', client.path, '. Client ID: ', clientId);
+
+                    // set callback handlers
+                    client.onConnectionLost = onConnectionLost;
+                    client.onMessageArrived = onMessageArrived;
+
+
+                    var options = {
+                        invocationContext: { host: hostname, port: port, path: client.path, clientId: clientId },
+                        timeout: timeout,
+                        keepAliveInterval: keepAlive,
+                        cleanSession: cleanSession,
+                        useSSL: ssl,
+                        onSuccess: onConnect,
+                        onFailure: onFail
+                    };
+
+
+
+                    if (user.length > 0) {
+                        options.userName = user;
+                    }
+
+                    if (pass.length > 0) {
+                        options.password = pass;
+                    }
+
+                    if (lastWillTopic.length > 0) {
+                        var lastWillMessage = new Paho.MQTT.Message(lastWillMessage);
+                        lastWillMessage.destinationName = lastWillTopic;
+                        lastWillMessage.qos = lastWillQos;
+                        lastWillMessage.retained = lastWillRetain;
+                        options.willMessage = lastWillMessage;
+                    }
+
+                    // connect the client
+                    client.connect(options);
+                    var statusSpan = document.getElementById("connectionStatus");
+                    statusSpan.innerHTML = '连接中 Connecting...';
+                }
+
+                function disconnect() {
+                    console.info('Disconnecting from Server');
+                    client.disconnect();
+                    var statusSpan = document.getElementById("connectionStatus");
+                    statusSpan.innerHTML = '已断开Connection - Disconnected.';
+                    connected = false;
+                    setFormEnabledState(false);
+
+                }
+
+                // Sets various form controls to either enabled or disabled
+                function setFormEnabledState(enabled) {
+
+                    // Connection Panel Elements
+                    if (enabled) {
+                        document.getElementById("clientConnectButton").innerHTML = "断开Disconnect";
+                    } else {
+                        document.getElementById("clientConnectButton").innerHTML = "连接Connect";
+                    }
+                    document.getElementById("hostInput").disabled = enabled;
+                    document.getElementById("portInput").disabled = enabled;
+                    document.getElementById("clientIdInput").disabled = enabled;
+                    document.getElementById("pathInput").disabled = enabled;
+                    document.getElementById("userInput").disabled = enabled;
+                    document.getElementById("passInput").disabled = enabled;
+                    document.getElementById("keepAliveInput").disabled = enabled;
+                    document.getElementById("timeoutInput").disabled = enabled;
+                    document.getElementById("sslInput").disabled = enabled;
+                    document.getElementById("cleanSessionInput").disabled = enabled;
+                    document.getElementById("lwtInput").disabled = enabled;
+                    document.getElementById("lwQosInput").disabled = enabled;
+                    document.getElementById("lwRetainInput").disabled = enabled;
+                    document.getElementById("lwMInput").disabled = enabled;
+
+                    // Publish Panel Elements
+                    document.getElementById("publishTopicInput").disabled = !enabled;
+                    document.getElementById("publishQosInput").disabled = !enabled;
+                    document.getElementById("publishMessageInput").disabled = !enabled;
+                    document.getElementById("publishButton").disabled = !enabled;
+                    document.getElementById("publishRetainInput").disabled = !enabled;
+
+                    // Subscription Panel Elements
+                    document.getElementById("subscribeTopicInput").disabled = !enabled;
+                    document.getElementById("subscribeQosInput").disabled = !enabled;
+                    document.getElementById("subscribeButton").disabled = !enabled;
+                    document.getElementById("unsubscribeButton").disabled = !enabled;
+
+                }
+                function hexbytes(hexstr) {
+
+                    var valueStr = hexstr.toLowerCase();
+                    valueStr = valueStr.replace(/\s+/g, ""); //去除空格
+                    var hexlen = Math.ceil(valueStr.length / 2);
+
+                    var hex = "0123456789abcdef";
+
+                    var i = 0;
+                    var messagebyte = new Uint8Array(hexlen);
+
+                    for (i = 0; i < hexlen; i++) {
+                        var char1 = valueStr.charAt(i * 2);
+                        var char2 = valueStr.charAt(i * 2 + 1);
+                        var num1 = hex.indexOf(char1);
+                        var num2 = hex.indexOf(char2);
+                        var value = num1 << 4;
+                        value = value | num2;
+
+                        var valueInt = parseInt(value);
+                        messagebyte[i] = value;
+                    }
+
+
+                    return messagebyte;
+                }
+
+
+                function publish() {
+                    var topic = document.getElementById("publishTopicInput").value;
+                    var qos = document.getElementById("publishQosInput").value;
+                    var msg = document.getElementById("publishMessageInput").value;
+                    var retain = document.getElementById("publishRetainInput").checked;
+                    // var hexsend = document.getElementById("publishHexInput").checked
+
+                    console.info('Publishing Message: Topic: ', topic, '. QoS: ' + qos + '. Message: ', msg);
+
+                    /*if(hexsend)
+                    {
+                        console.log("hexsend:");
+                        msg=hexbytes(msg);
+                        console.log(msg);
+    
+                    }*/
+
+
+                    var message = new Paho.MQTT.Message(msg);
+                    message.destinationName = topic;
+                    message.qos = Number(qos);
+                    message.retained = retain;
+                    client.send(message);
+                }
+
+
+                function subscribe() {
+                    var topic = document.getElementById("subscribeTopicInput").value;
+                    var qos = document.getElementById("subscribeQosInput").value;
+                    console.info('Subscribing to: Topic: ', topic, '. QoS: ', qos);
+                    client.subscribe(topic, { qos: Number(qos) });
+                }
+
+                function unsubscribe() {
+                    var topic = document.getElementById("subscribeTopicInput").value;
+                    console.info('Unsubscribing from ', topic);
+                    client.unsubscribe(topic, {
+                        onSuccess: unsubscribeSuccess,
+                        onFailure: unsubscribeFailure,
+                        invocationContext: { topic: topic }
+                    });
+                }
+
+
+                function unsubscribeSuccess(context) {
+                    console.info('Successfully unsubscribed from ', context.invocationContext.topic);
+                }
+
+                function unsubscribeFailure(context) {
+                    console.info('Failed to  unsubscribe from ', context.invocationContext.topic);
+                }
+
+                function clearHistory() {
+                    var table = document.getElementById("incomingMessageTable");
+                    //or use :  var table = document.all.tableid;
+                    for (var i = table.rows.length - 1; i > 0; i--) {
+                        table.deleteRow(i);
+                    }
+
+                }
+
+
+                // Just in case someone sends html
+                function safe_tags_regex(msg) {
+                    try {// 字符串消息
+                        return msg.payloadString.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    } catch (e) {
+                        // 二进制消息
+                        return msg.payloadBytes;
+                    }
+                }
+
+            </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,409 @@
+<!doctype html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <title>远程监控+控制（手机端）</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+      <link rel="stylesheet" href="css/bootstrap.min.css">
+      <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+      <style>
+          * {
+              margin: 0;
+              padding: 0;
+          }
+
+          .camera_stream {
+              width: 100%;
+              height: 300px;
+              position: absolute;
+          }
+
+          .control_cricle {
+              width: 200px;
+              height: 200px;
+              background: rgba(114, 176, 210, 0.5);
+              border-radius: 100%;
+              position: absolute;
+              top: 470px;
+              left: 50%;
+              margin-left: -100px;
+              margin-top: -100PX;
+          }
+
+          .control_pos {
+              width: 50px;
+              height: 50px;
+              background: rgb(255, 255, 255);
+              border-radius: 100%;
+              position: absolute;
+              top: 470px;
+              left: 50%;
+              margin-left: -25px;
+              margin-top: -25px;
+          }
+
+          .control_area {
+              width: 200px;
+              height: 200px;
+              border-radius: 100%;
+              position: absolute;
+              top: 470px;
+              left: 50%;
+              margin-left: -100px;
+              margin-top: -100PX;
+          }
+          
+          .mqtt_info {
+              position: absolute;
+              top: 310px;
+              left: 50%;
+              margin-left: -60px;
+          }
+          .pub_info {
+              position: absolute;
+              top: 590px;
+              left: 5%;
+          }
+          .sub_info {
+              position: absolute;
+              top: 650px;
+              left: 5%;
+          }
+      </style>
+      <script src="js/jquery.min.js"></script>
+      <script src="js/bootstrap.min.js"></script>
+      <script src="js/mqttws31.js"></script>
+
+  </head>
+
+  <body>
+    <img class="camera_stream" id="cameraStream" src="">
+
+    <div class="control_cricle"></div>
+    <div class="control_pos"></div>
+    <div class="control_area"></div>
+
+    <div class="mqtt_info">
+        <span id="connectionStatus"></span>
+    </div>
+    <div class="pub_info">
+        <span id="publishStatus"></span>
+    </div>
+    <div class="sub_info" style="display: none;">
+        <span id="subscribeStatus"></span>
+        <table class="table table-hover table-condensed tableSection" id="lastMessageTable">
+            <thead>
+                <tr>
+                    <th>Topic</th>
+                    <th>Payload</th>
+                    <th>Time</th>
+                    <th>QoS</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 日期格式化函数
+        Date.prototype.format = function (fmt) {
+            var o = {
+                "M+": this.getMonth() + 1, //月份
+                "d+": this.getDate(), //日
+                "h+": this.getHours(), //小时
+                "m+": this.getMinutes(), //分
+                "s+": this.getSeconds(), //秒
+                "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+                "S": this.getMilliseconds() //毫秒
+            };
+            if (/(y+)/.test(fmt)) {
+                fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+            }
+            for (var k in o) {
+                if (new RegExp("(" + k + ")").test(fmt)) {
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+                }
+            }
+            return fmt;
+        }
+
+
+        // 1.摇杆初始化
+        let control_area = document.querySelector('.control_area');
+        let control_pos = document.querySelector('.control_pos');
+        let r = 25;		//摇杆的半径
+        let r2 = 100;	//底盘的半径
+        let x = control_pos.offsetLeft + r;		//加上r半径的偏移到中心
+        let y = control_pos.offsetTop + r;
+        let last_x = 0; //最后一次的横纵向控制指令
+        let last_y = 0;
+        let last_pub_time = 0;
+        // 按压拖拽位置计算
+        control_area.ontouchmove = (e) => {
+            let t = e.changedTouches[0];
+            //开根 触摸点到摇杆中心点的距离
+            let d = Math.sqrt(Math.pow(t.pageX - x, 2) + Math.pow(t.pageY - y, 2));
+            d = d > (r2 - r) ? r2 - r : d;
+            //三角函数求反正切 减去xy偏移到中心点
+            let radin = Math.atan2(t.pageY - y, t.pageX - x);
+            let vx = x + Math.cos(radin) * d;
+            let vy = y + Math.sin(radin) * d;
+            control_pos.style.left = vx + 'px';
+            control_pos.style.top = vy + 'px';
+
+            // 发出MQTT控制指令
+            let control_x = Math.round((vx-x)/3); //相对中心点的偏移，/3是为了减少pub发送量
+            let control_y = Math.round((y-vy)/3);
+            console.log("ontouchmove: "+control_x+","+control_y);
+            if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 300 || (control_x==0 && control_x==0))){
+                last_pub_time = Date.now();
+                publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
+                last_x = control_x;
+                last_y = control_y;
+            }
+        }
+        // 松开后坐标恢复到中心点
+        control_area.ontouchend = () => {
+            control_pos.style.left = x + 'px';
+            control_pos.style.top = y + 'px';
+            // 发出MQTT控制指令
+            let control_x = 0; //中心点为0,0
+            let control_y = 0;
+            console.log("ontouchend: "+control_x+","+control_y);
+            if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 300 || (control_x==0 && control_x==0))){
+                last_pub_time = Date.now();
+                publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
+                last_x = control_x;
+                last_y = control_y;
+            }
+        }
+        // 拖动时禁止滚动页面
+        document.body.addEventListener('touchmove', function(e){
+            e.preventDefault();
+        }, { passive: false });
+
+
+        // 2.MQTT初始化
+        // Create a mqtt_client instance
+        mqtt_client = null;
+        mqtt_connected = false;
+        
+        // 连接mqtt
+        function mqtt_connect() {
+            var hostname = "amzvemj.iot.gz.baidubce.com";
+            var port = "443";
+            var clientId = "ws-tank1-" + Date.now();
+            var path = "\\mqtt";
+            var user = "thingidp@amzvemj|tank1|0|MD5";
+            var pass = "b2c233b4b1d09a42ab4c8293794ec25a";
+            var keepAlive = 60;
+            var timeout = 5;
+            var ssl = true;
+            var cleanSession = false;
+            var lastWillTopic = "";
+            var lastWillQos = 0;
+            var lastWillRetain = false;
+            var lastWillMessage = "";
+            if (path.length > 0) {
+                mqtt_client = new Paho.MQTT.Client(hostname, Number(port), path, clientId);
+            } else {
+                mqtt_client = new Paho.MQTT.Client(hostname, Number(port), clientId);
+            }
+            console.info('MQTT Connecting to Server: Hostname: ', hostname, '. Port: ', port, '. Path: ', mqtt_client.path, '. Client ID: ', clientId);
+
+            // set callback handlers
+            mqtt_client.onConnectionLost = onConnectionLost;
+            mqtt_client.onMessageArrived = onMessageArrived;
+
+
+            var options = {
+                invocationContext: { host: hostname, port: port, path: mqtt_client.path, clientId: clientId },
+                timeout: timeout,
+                keepAliveInterval: keepAlive,
+                cleanSession: cleanSession,
+                useSSL: ssl,
+                onSuccess: onConnect,
+                onFailure: onFail
+            };
+            if (user.length > 0) {
+                options.userName = user;
+            }
+            if (pass.length > 0) {
+                options.password = pass;
+            }
+            if (lastWillTopic.length > 0) {
+                var lastWillMessage = new Paho.MQTT.Message(lastWillMessage);
+                lastWillMessage.destinationName = lastWillTopic;
+                lastWillMessage.qos = lastWillQos;
+                lastWillMessage.retained = lastWillRetain;
+                options.willMessage = lastWillMessage;
+            }
+            //console.log(options);
+
+            // connect the
+            mqtt_client.connect(options);
+            console.info('MQTT connecting...');
+
+            var statusSpan = document.getElementById("connectionStatus");
+            statusSpan.innerHTML = 'MQTT Connecting...';
+        }
+
+        // 断开mqtt
+        function mqtt_disconnect() {
+            console.info('Disconnecting from Server');
+            mqtt_client.disconnect();
+            var statusSpan = document.getElementById("connectionStatus");
+            statusSpan.innerHTML = 'MQTT Disconnected.';
+            mqtt_connected = false;
+        }
+
+        // 连接成功时的回调
+        function onConnect(context) {
+            // Once a connection has been made, make a subscription and send a message.
+            console.log("Client Connected");
+            var statusSpan = document.getElementById("connectionStatus");
+            statusSpan.innerHTML = "MQTT Connected! ";    // + context.invocationContext.clientId;    //context.invocationContext.host + ':' + context.invocationContext.port + context.invocationContext.path + ' as ' + 
+            mqtt_connected = true;
+        }
+        // 连接失败时的回调
+        function onFail(context) {
+            console.log("MQTT Failed to connect");
+            var statusSpan = document.getElementById("connectionStatus");
+            statusSpan.innerHTML = "MQTT Failed to connect: " + context.errorMessage;
+            mqtt_connected = false;
+            
+            // retry
+            console.log(".");
+            mqtt_connect();
+        }
+        // 断开连接时的回调
+        function onConnectionLost(responseObject) {
+            mqtt_connected = false;
+            var statusSpan = document.getElementById("connectionStatus");
+            statusSpan.innerHTML = "MQTT Connection Lost!";
+            if (responseObject.errorCode !== 0) {
+                console.log("MQTT Connection Lost: " + responseObject.errorMessage);
+            }
+            // retry
+            console.log(".");
+            mqtt_connect();
+        }
+
+        // 收到消息时的回调
+        function onMessageArrived(message) {
+            // console.log('Message Recieved: Topic: ', message.destinationName, '. Payload: ', message.payloadString, '. QoS: ', message.qos);
+            console.log(message);
+
+            var now = new Date();
+            var timestr = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
+            var messageTime = timestr;// new Date().toString();
+            
+            // show msg
+            if (!document.getElementById(message.destinationName)) {
+                var lastMessageTable = document.getElementById("lastMessageTable").getElementsByTagName('tbody')[0];
+                var newlastMessageRow = lastMessageTable.insertRow(0);
+                newlastMessageRow.id = message.destinationName;
+                newlastMessageRow.insertCell(0).innerHTML = message.destinationName;
+                newlastMessageRow.insertCell(1).innerHTML = safe_tags_regex(message);
+                newlastMessageRow.insertCell(2).innerHTML = messageTime;
+                newlastMessageRow.insertCell(3).innerHTML = message.qos;
+
+            } else {
+                // Update Last Message Table
+                var lastMessageRow = document.getElementById(message.destinationName);
+                lastMessageRow.id = message.destinationName;
+                lastMessageRow.cells[0].innerHTML = message.destinationName;
+                lastMessageRow.cells[1].innerHTML = safe_tags_regex(message);
+                lastMessageRow.cells[2].innerHTML = messageTime;
+                lastMessageRow.cells[3].innerHTML = message.qos;
+            }
+
+        }
+
+
+        // 发送消息
+        function publish(topic, msg) {
+            //var topic = "tank1/cmd";
+            //var msg = "";
+            var qos = "1";
+            var retain = false;
+
+            var statusSpan = document.getElementById("publishStatus");
+            statusSpan.innerHTML = 'publish: Topic: '+  topic + '. QoS: ' + qos + '. Message: ' + msg;
+            console.info('Publishing Message: Topic: ', topic, '. QoS: ' + qos + '. Message: ', msg);
+
+            var message = new Paho.MQTT.Message(msg);
+            message.destinationName = topic;
+            message.qos = Number(qos);
+            message.retained = retain;
+            mqtt_client.send(message);
+        }
+
+        // 订阅topic
+        function subscribe() {
+            var topic = document.getElementById("subscribeTopicInput").value;
+            var qos = document.getElementById("subscribeQosInput").value;
+            console.info('Subscribing to: Topic: ', topic, '. QoS: ', qos);
+            mqtt_client.subscribe(topic, { qos: Number(qos) });
+        }
+
+        // 取消订阅
+        function unsubscribe() {
+            var topic = document.getElementById("subscribeTopicInput").value;
+            console.info('Unsubscribing from ', topic);
+            mqtt_client.unsubscribe(topic, {
+                onSuccess: unsubscribeSuccess,
+                onFailure: unsubscribeFailure,
+                invocationContext: { topic: topic }
+            });
+        }
+
+        // 取消订阅成功回调
+        function unsubscribeSuccess(context) {
+            console.info('Successfully unsubscribed from ', context.invocationContext.topic);
+        }
+        // 取消订阅失败回调
+        function unsubscribeFailure(context) {
+            console.info('Failed to  unsubscribe from ', context.invocationContext.topic);
+        }
+
+
+        // Just in case someone sends html
+        function safe_tags_regex(msg) {
+            try {// 字符串消息
+                return msg.payloadString.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            } catch (e) {
+                // 二进制消息
+                return msg.payloadBytes;
+            }
+        }
+
+
+        // 连接mqtt
+        mqtt_connect();
+
+        // 刷新视频流
+        var stream = document.getElementById("cameraStream");
+        //stream.src = "http://192.168.0.102:81/stream";
+        let  websocket = new WebSocket('ws://yanjingang.com:8079')
+		websocket.addEventListener('open',function(){
+            console.log("connect to ws server")
+		});
+        websocket.addEventListener('message',function(e){   //server pushg过来的二进制图片
+            console.log(e.data);
+            // blob数据转base64格式
+            var reader = new FileReader();
+            reader.onload = function(e){
+                updateStreamCallback(e.target.result);
+            }
+            reader.readAsDataURL(e.data);
+		});
+        function updateStreamCallback(base64){
+            //console.log(base64);
+            stream.src = base64;
+        }
+    </script>
+  </body>
+</html>
