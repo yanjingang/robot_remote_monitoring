@@ -1,4 +1,7 @@
-// esp32-cam + l298n + mqtt + ws制作4g图传坦克
+/* 
+ *  esp32-cam + l298n + mqtt + ws制作4g图传坦克
+ *    https://blog.yanjingang.com/?p=6598 
+ */
 
 #include "esp_camera.h"
 #include <WiFi.h>
@@ -275,13 +278,11 @@ void loop() {
       taskStatus = 1; //任务执行中
       xTaskCreate(
         &sendStream,   // Task function.
-        //taskName, // String with name of task.
         "sendStream", // String with name of task.
         10240,     // Stack size in bytes.
         NULL,      // Parameter passed as input of the task
         1,         // Priority of the task.
         NULL);     // Task handle.
-      //delay(100);
   }
 }
 
