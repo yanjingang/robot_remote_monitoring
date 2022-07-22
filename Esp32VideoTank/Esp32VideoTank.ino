@@ -1,4 +1,4 @@
-// esp32-cam + l298n + mqtt制作wifi图传坦克
+// esp32-cam + l298n + mqtt + ws制作4g图传坦克
 
 #include "esp_camera.h"
 #include <WiFi.h>
@@ -73,6 +73,8 @@ const char* socket_url = "yanjingang.com";
 int socket_port = 8079;
 WebSocketsClient webSocket;
 long lastSendStream = 0;   //末次上报时间
+int socketStatus = 0;     //ws连接状态(0未连接，1已连接)
+int taskStatus = 0;       //rask状态(0未执行，1执行中)
 
 
 void setup() {
@@ -112,7 +114,7 @@ void setup() {
     config.jpeg_quality = 12;
     config.fb_count = 1;
   }*/
-  config.frame_size = FRAMESIZE_HQVGA;
+  config.frame_size = FRAMESIZE_HQVGA; //XGA(1024x768)、SVGA(800x600)、VGA(640x480)、CIF(400x296)、QVGA(320x240)、HQVGA(240x176)、QQVGA(160x120)
   config.jpeg_quality = 10;
   config.fb_count = 1;
 
@@ -254,8 +256,9 @@ void loop() {
   //更新websocket信息
   webSocket.loop();
   uint64_t now = millis();
-  if(now - lastSendStream > 40) {
+  if(now - lastSendStream > 100 && socketStatus && taskStatus==0) { //仅在连接ws 且 无其他异步任务执行时运行
       lastSendStream = now;
+      /*// 同步推流
       camera_fb_t * fb = NULL;
       // Take Picture with Camera
       fb = esp_camera_fb_get();  
@@ -267,48 +270,44 @@ void loop() {
         Serial.print("Send Image to WsServer: len ");
         Serial.println(fb->len);
         esp_camera_fb_return(fb);
-      }
+      }*/
+      // 异步推流任务
+      taskStatus = 1; //任务执行中
+      xTaskCreate(
+        &sendStream,   // Task function.
+        //taskName, // String with name of task.
+        "sendStream", // String with name of task.
+        10240,     // Stack size in bytes.
+        NULL,      // Parameter passed as input of the task
+        1,         // Priority of the task.
+        NULL);     // Task handle.
+      //delay(100);
   }
-
-  /*
-  // 推送视频流到ws服务异步任务
-  //char taskName[] = "camera-stream-task-";
-  //char ms[9];
-  //itoa(millis(), ms, 10);
-  //strcat(taskName, ms); 
-  //Serial.println(taskName);
-  xTaskCreate(
-    &sendStream,   // Task function.
-    //taskName, // String with name of task.
-    "sendStream", // String with name of task.
-    20480,     // Stack size in bytes.
-    NULL,      // Parameter passed as input of the task
-    1,         // Priority of the task.
-    NULL);     // Task handle.
-  delay(1000);
-  */
 }
 
 
 //视频流推送服务器线程
 void sendStream(void *parameter){
-  printf("Hello world!\n");
-  Serial.print("Send Image to WsServer: len ");
   camera_fb_t * fb = NULL;
   // Take Picture with Camera
   fb = esp_camera_fb_get();  
   if(!fb) {
     Serial.println("Camera capture failed");
   }else{
-    Serial.println(fb->len);
-    webSocket.sendBIN(fb->buf, fb->len);
+    if(socketStatus){ //ws已连接
+      webSocket.sendBIN(fb->buf, fb->len);
+      Serial.print("Send Image to WsServer: len ");
+      Serial.println(fb->len);
+    }
     esp_camera_fb_return(fb);
-    Serial.println("send done!");
   }
   
   //vTaskDelay(100 / portTICK_RATE_MS);
 
+  taskStatus=0; //当前任务结束
+  
   vTaskDelete(NULL);
+  
 }
 
 
@@ -473,18 +472,19 @@ void runMotor(int x, int y) {
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
   switch(type) {
     case WStype_DISCONNECTED:
-      Serial.printf("[WS] Disconnected!\n");
-      break;
-    case WStype_CONNECTED: {
-      Serial.printf("[WS] Connected to url: %s\n", payload);
-      webSocket.sendTXT("camlogin");
-    }
-      break;
+        socketStatus = 0;
+        Serial.printf("[WS] Disconnected!\n");
+        break;
+    case WStype_CONNECTED: 
+        socketStatus = 1;
+        Serial.printf("[WS] Connected to url: %s\n", payload);
+        webSocket.sendTXT("camlogin");
+        break;
     case WStype_TEXT:
-      Serial.printf("[WS] get text: %s\n", payload);
-      break;
+        Serial.printf("[WS] get text: %s\n", payload);
+        break;
     case WStype_BIN:
-      break;
+        break;
     case WStype_PING:
         Serial.printf("[WS] get ping\n");
         break;
