@@ -70,6 +70,12 @@ int port = 1883;
 const char pubTopic[]  = "tank1/data";
 const char subTopic[]  = "tank1/cmd";  // 注意：baidu iotcore的自定义topic不能以'/'开头!
 
+// tcp server
+WiFiClient tcpClient;
+//const IPAddress tcpServer(192,168,1,5);   //目标IP地址
+const char tcpServer[] = "yanjingang.com";  //目标地址
+uint16_t tcpPort = 8879;         //目标服务器端口号
+
 
 // ws视频流server
 const char* socket_url = "yanjingang.com";
@@ -217,6 +223,18 @@ void setup() {
   Serial.print("Waiting for messages on topic: ");
   Serial.println(subTopic);
 
+  /*
+  // 建立TCP连接（对比tcp与mqtt的传输时延差别）
+  while (!tcpClient.connect(tcpServer, tcpPort) || !tcpClient.connected()) {
+    Serial.print("TCP connection failed! Retry...");
+    delay(500);
+  }
+  Serial.println("TCP connected!\n");
+  // login
+  if(!tcpClient.write("hello")){  //{\"action\":\"login\",\"hid\":1,\"uid\":\"mars\",\"data\":{}}
+     Serial.print("TCP write failed!");
+  }*/
+  
 }
 
 
@@ -253,10 +271,20 @@ void loop() {
     mqttClient.beginMessage(pubTopic);
     mqttClient.print(strdata);  //{"status": "Forward"}
     mqttClient.endMessage();
-    Serial.println("pub done!");
+    Serial.println("pub mqtt done!");
+    
+    /*// sent tcp 
+    if(tcpClient.connected()){
+      if(!tcpClient.write(strdata.c_str())){
+         Serial.print("TCP write failed!");
+      }else{
+        Serial.println("pub tcp done!");
+      }
+    }*/
   }
 
-  //更新websocket信息
+
+  // 推送视频流到WS服务器
   webSocket.loop();
   uint64_t now = millis();
   if(now - lastSendStream > 100 && socketStatus && taskStatus==0) { //仅在连接ws 且 无其他异步任务执行时运行

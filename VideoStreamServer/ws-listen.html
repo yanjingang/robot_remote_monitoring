@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>WSS监听</title>
+    <script type="text/javascript" src="http://libs.baidu.com/jquery/1.9.1/jquery.min.js"></script>
+    <script>
+        var socket;
+        //url必须使用ws或者wss（加密）作为头,这个url设定好后，在javascript脚本中可以通过访问websocket对象的url来重新获取
+        //通信建立连接后，就可以双向通信了，使用websocket对象的send方法加json数据便可将任何形式数据传往服务器
+
+        //通过onmessage事件来接收服务器传送过来数据：
+        //通过onopern事件监听socket打开事件
+        //通过onclose监听socket关闭事件
+        //通过webSocket.close()方法关闭socket连接；
+        //通过readyState属性获取websocket对象状态：
+        //CONNECTION 0 正在连接
+        //OPEN 1 已经连接
+        //CLOSING 2 正在关闭
+        //CLOSE 3 已经关闭
+        var m = 0;
+        $(function() {
+            $('#ws_server').val('ws://yanjingang.com:8878/')
+            $('#conn').click(function() {
+                ws_server = $('#ws_server').val();
+                socket = new WebSocket(ws_server);
+                //socket = new WebSocket('ws://127.0.0.1:8878/');
+                $('#msg_conn').text('正在连接');
+                socket.onopen = function(e) {
+                    $('#msg_conn').html('Connected. Waiting for messages...');
+                    //window.setInterval(function () {
+                    // socket.send("the time is " + new Date());
+                    //}, 1000);
+                };
+                socket.onclose = function() {
+                    $('#msg_conn').html('Connect closed.');
+                }
+                socket.addEventListener("message", function(evt) {
+                    $('#msg_receive').append((++m) + ":" + evt.data + '<br>');
+                });
+                socket.onerror = function(evt) {
+                    $('#msg_conn').append(JSON.stringify(evt));
+                }
+            });
+
+            $('#close').click(function() {
+                socket.close();
+            });
+
+            $('#listen').click(function() {
+                if (socket.readyState == WebSocket.OPEN) {
+                    var messageObj = {
+                        uid: $('#uid').val(),
+                        command: $('#command').val()
+                    };
+                    var messageJson = JSON.stringify(messageObj);
+                    //listen park
+                    socket.send(messageJson);
+                } else {
+                    $('#msg_conn').text('连接已经关闭');
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <form id="form1">
+        <div>
+            ws:<input id="ws_server" name="ws_server" type="text" style='width: 300px;' value="ws://127.0.0.1:8878/" />
+            <input id="conn" type="button" value="连接" />
+            <input id="close" type="button" value="关闭" />
+            <br>
+            <span id="msg_conn"></span>
+            <br>
+            uid:<input id="uid" name="uid" type="text" value="mars" />
+            <input id="listen" type="button" value="listen" />
+            <br>
+            <span id="msg_receive"></span>
+        </div>
+    </form>
+</body>
+
+</html>
