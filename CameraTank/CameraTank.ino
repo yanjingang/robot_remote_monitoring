@@ -53,8 +53,8 @@ int PWM_RIGHT1 = 13; // Right 1
 int PWM_RIGHT2 = 12; // Right 2
 // 其他参数
 int CAMERA_LED = 4; // Light灯
-int DC_SPEED_LEFT = 100;  //速度
-int DC_SPEED_RIGHT = 100;  //速度
+int PWM_SPEED_LEFT = 800;  //速度
+int PWM_SPEED_RIGHT = 800;  //速度
 String motorStatus = "";        //底盘当前状态
 String lastMotorStatus = "";   //底盘末次上报状态
 
@@ -102,7 +102,7 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  // if PSRAM IC present, init with UXGA resolution and higher JPEG quality for larger pre-allocated frame buffer.
+  /*// if PSRAM IC present, init with UXGA resolution and higher JPEG quality for larger pre-allocated frame buffer.
   if(psramFound()){
     config.frame_size = FRAMESIZE_UXGA;
     config.jpeg_quality = 10;
@@ -111,7 +111,10 @@ void setup() {
     config.frame_size = FRAMESIZE_SVGA;
     config.jpeg_quality = 12;
     config.fb_count = 1;
-  }
+  }*/
+  config.frame_size = FRAMESIZE_HQVGA;
+  config.jpeg_quality = 10;
+  config.fb_count = 1;
 
 
   // 相机初始化 camera init
@@ -128,7 +131,7 @@ void setup() {
     s->set_saturation(s, -2); // lower the saturation
   }
   // drop down frame size for higher initial frame rate
-  s->set_framesize(s, FRAMESIZE_QVGA);
+  //s->set_framesize(s, FRAMESIZE_HQVGA);  //XGA(1024x768)、SVGA(800x600)、VGA(640x480)、CIF(400x296)、QVGA(320x240)、HQVGA(240x176)、QQVGA(160x120)
 
   #if defined(CAMERA_MODEL_M5STACK_WIDE) || defined(CAMERA_MODEL_M5STACK_ESP32CAM)
     s->set_vflip(s, 1);
@@ -391,18 +394,18 @@ void runMotor(int x, int y) {
     motorStatus = "RightForward";
     Serial.println(motorStatus);
     //forward + right 向前右转
-    PWM_Control(PWM_LEFT1, DC_SPEED_LEFT);   //pwm调速
+    PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT);   //pwm调速
     PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, DC_SPEED_RIGHT * (pwmMax - x)/pwmMax);   //pwm调速
+    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT * (pwmMax - x)/pwmMax);   //pwm调速
     PWM_Control(PWM_RIGHT2, 0);
   }
   else if (y >= 2 && x <= -2) { //前+左
     motorStatus = "LeftForward";
     Serial.println(motorStatus);
     //forward + left 向前左转
-    PWM_Control(PWM_LEFT1, DC_SPEED_LEFT * (0 - x)/pwmMax);   //pwm调速
+    PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT * (0 - x)/pwmMax);   //pwm调速
     PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, DC_SPEED_RIGHT);   //pwm调速
+    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT);   //pwm调速
     PWM_Control(PWM_RIGHT2, 0);
   }
   else if (y <= -2 && x <= -2) { //后+左
@@ -410,50 +413,50 @@ void runMotor(int x, int y) {
     Serial.println(motorStatus);
     //back + left 向左后转
     PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, DC_SPEED_LEFT);
+    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT);
     PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, DC_SPEED_RIGHT * (0 - x)/pwmMax);
+    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT * (0 - x)/pwmMax);
   }
   else if (y <= -2 && x >= 2) { //后+右
     motorStatus = "RightBackward";
     Serial.println(motorStatus);
     //back + right 向右后转
     PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, DC_SPEED_LEFT * (pwmMax - x)/pwmMax);
+    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT * (pwmMax - x)/pwmMax);
     PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, DC_SPEED_RIGHT);
+    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT);
   }
   else if (y >= 2) { //前
     motorStatus = "Forward";
     Serial.println(motorStatus);
-    PWM_Control(PWM_LEFT1, DC_SPEED_LEFT);   //pwm调速
+    PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT);   //pwm调速
     PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, DC_SPEED_RIGHT);   //pwm调速
+    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT);   //pwm调速
     PWM_Control(PWM_RIGHT2, 0);
   }
   else if (y <= -2) { //后
     motorStatus = "Backward";
     Serial.println(motorStatus);
     PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, DC_SPEED_LEFT);
+    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT);
     PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, DC_SPEED_RIGHT);
+    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT);
   }
   else if (x <= -2) { //左
     motorStatus = "TurnLeft";
     Serial.println(motorStatus);
     PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, DC_SPEED_LEFT);
-    PWM_Control(PWM_RIGHT1, DC_SPEED_RIGHT);
+    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT);
+    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT);
     PWM_Control(PWM_RIGHT2, 0);
   }
   else if (x >= 2) { //右
     motorStatus = "TurnRight";
     Serial.println(motorStatus);
-    PWM_Control(PWM_LEFT1, DC_SPEED_LEFT);   //pwm调速
+    PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT);   //pwm调速
     PWM_Control(PWM_LEFT2, 0);
     PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, DC_SPEED_RIGHT);
+    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT);
   }
   else if (y == 0 && x == 0) {  //停
     motorStatus = "Stop";

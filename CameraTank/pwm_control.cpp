@@ -45,5 +45,8 @@ void PWM_Init(int PWM_Channel, int PWM_IO){
 
 //pwm的占空比
 void PWM_Control(int PWM_Channel, int DutyA){
+    if(DutyA > 1024){
+        DutyA = 1024;
+    }
     ledcWrite(PWM_Channel, DutyA);
 }
