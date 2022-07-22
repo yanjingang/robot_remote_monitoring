@@ -6,7 +6,7 @@ https://blog.yanjingang.com/?p=6598
 
 
 ## 代码结构：
-CameraTank：ESP32-CAM单片机程序，可以连接底盘或舵机进行控制
+Esp32VideoTank：ESP32-CAM单片机程序，可以连接底盘或舵机进行控制
 
 WebControlApp：JS写的视频显示和控制界面，通过4G网址或内嵌到微信小程序里使用
 
