@@ -24,7 +24,7 @@
               background: rgba(114, 176, 210, 0.5);
               border-radius: 100%;
               position: absolute;
-              top: 470px;
+              top: 450px;
               left: 50%;
               margin-left: -100px;
               margin-top: -100PX;
@@ -36,7 +36,7 @@
               background: rgb(255, 255, 255);
               border-radius: 100%;
               position: absolute;
-              top: 470px;
+              top: 450px;
               left: 50%;
               margin-left: -25px;
               margin-top: -25px;
@@ -47,7 +47,7 @@
               height: 200px;
               border-radius: 100%;
               position: absolute;
-              top: 470px;
+              top: 450px;
               left: 50%;
               margin-left: -100px;
               margin-top: -100PX;
@@ -59,14 +59,15 @@
               left: 50%;
               margin-left: -60px;
           }
-          .pub_info {
+          .ws_info {
               position: absolute;
-              top: 590px;
-              left: 5%;
+              top: 330px;
+              left: 50%;
+              margin-left: -60px;
           }
-          .sub_info {
+          .msg_info {
               position: absolute;
-              top: 650px;
+              top: 560px;
               left: 5%;
           }
       </style>
@@ -84,24 +85,31 @@
     <div class="control_area"></div>
 
     <div class="mqtt_info">
-        <span id="connectionStatus"></span>
+        <span id="mqttStatus"></span>
     </div>
-    <div class="pub_info">
-        <span id="publishStatus"></span>
+    <div class="ws_info">
+        <span id="wsStatus"></span>
     </div>
-    <div class="sub_info" style="display: none;">
-        <span id="subscribeStatus"></span>
+    <div class="msg_info">
         <table class="table table-hover table-condensed tableSection" id="lastMessageTable">
             <thead>
                 <tr>
                     <th>Topic</th>
-                    <th>Payload</th>
-                    <th>Time</th>
+                    <th>Data</th>
                     <th>QoS</th>
                 </tr>
             </thead>
             <tbody>
-                
+                <tr id="tank1/cmd">
+                    <td>tank1/cmd</td>
+                    <td>{"x":"0","y":0,"ts":1658472666}</td>
+                    <td>0</td>
+                </tr>
+                <tr id="tank1/data">
+                    <td>tank1/data</td>
+                    <td>{"status":"Stop","ts":1658472666}</td>
+                    <td>0</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -159,7 +167,7 @@
             console.log("ontouchmove: "+control_x+","+control_y);
             if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 300 || (control_x==0 && control_x==0))){
                 last_pub_time = Date.now();
-                publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
+                publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+'}');    //+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
                 last_x = control_x;
                 last_y = control_y;
             }
@@ -174,7 +182,7 @@
             console.log("ontouchend: "+control_x+","+control_y);
             if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 300 || (control_x==0 && control_x==0))){
                 last_pub_time = Date.now();
-                publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
+                publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+'}');    //+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
                 last_x = control_x;
                 last_y = control_y;
             }
@@ -183,6 +191,7 @@
         document.body.addEventListener('touchmove', function(e){
             e.preventDefault();
         }, { passive: false });
+
 
 
         // 2.MQTT初始化
@@ -246,15 +255,15 @@
             mqtt_client.connect(options);
             console.info('MQTT connecting...');
 
-            var statusSpan = document.getElementById("connectionStatus");
+            var statusSpan = document.getElementById("mqttStatus");
             statusSpan.innerHTML = 'MQTT Connecting...';
         }
 
         // 断开mqtt
         function mqtt_disconnect() {
-            console.info('Disconnecting from Server');
+            console.info('MQTT Disconnecting from Server');
             mqtt_client.disconnect();
-            var statusSpan = document.getElementById("connectionStatus");
+            var statusSpan = document.getElementById("mqttStatus");
             statusSpan.innerHTML = 'MQTT Disconnected.';
             mqtt_connected = false;
         }
@@ -262,15 +271,18 @@
         // 连接成功时的回调
         function onConnect(context) {
             // Once a connection has been made, make a subscription and send a message.
-            console.log("Client Connected");
-            var statusSpan = document.getElementById("connectionStatus");
+            console.log("MQTT Client Connected");
+            var statusSpan = document.getElementById("mqttStatus");
             statusSpan.innerHTML = "MQTT Connected! ";    // + context.invocationContext.clientId;    //context.invocationContext.host + ':' + context.invocationContext.port + context.invocationContext.path + ' as ' + 
             mqtt_connected = true;
+            
+            //启动订阅
+            subscribe();
         }
         // 连接失败时的回调
         function onFail(context) {
             console.log("MQTT Failed to connect");
-            var statusSpan = document.getElementById("connectionStatus");
+            var statusSpan = document.getElementById("mqttStatus");
             statusSpan.innerHTML = "MQTT Failed to connect: " + context.errorMessage;
             mqtt_connected = false;
             
@@ -281,7 +293,7 @@
         // 断开连接时的回调
         function onConnectionLost(responseObject) {
             mqtt_connected = false;
-            var statusSpan = document.getElementById("connectionStatus");
+            var statusSpan = document.getElementById("mqttStatus");
             statusSpan.innerHTML = "MQTT Connection Lost!";
             if (responseObject.errorCode !== 0) {
                 console.log("MQTT Connection Lost: " + responseObject.errorMessage);
@@ -293,13 +305,19 @@
 
         // 收到消息时的回调
         function onMessageArrived(message) {
-            // console.log('Message Recieved: Topic: ', message.destinationName, '. Payload: ', message.payloadString, '. QoS: ', message.qos);
-            console.log(message);
+            console.log('Message Recieved: Topic: ', message.destinationName, '. Payload: ', message.payloadString, '. QoS: ', message.qos);
+            //console.log(message);
 
             var now = new Date();
             var timestr = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
             var messageTime = timestr;// new Date().toString();
             
+            // show
+            updateLastMessageTable(message);
+        }
+
+        // 更新最后pub/sub信息显示
+        function updateLastMessageTable(message){
             // show msg
             if (!document.getElementById(message.destinationName)) {
                 var lastMessageTable = document.getElementById("lastMessageTable").getElementsByTagName('tbody')[0];
@@ -307,8 +325,8 @@
                 newlastMessageRow.id = message.destinationName;
                 newlastMessageRow.insertCell(0).innerHTML = message.destinationName;
                 newlastMessageRow.insertCell(1).innerHTML = safe_tags_regex(message);
-                newlastMessageRow.insertCell(2).innerHTML = messageTime;
-                newlastMessageRow.insertCell(3).innerHTML = message.qos;
+                //newlastMessageRow.insertCell(2).innerHTML = messageTime;
+                newlastMessageRow.insertCell(2).innerHTML = message.qos;
 
             } else {
                 // Update Last Message Table
@@ -316,10 +334,9 @@
                 lastMessageRow.id = message.destinationName;
                 lastMessageRow.cells[0].innerHTML = message.destinationName;
                 lastMessageRow.cells[1].innerHTML = safe_tags_regex(message);
-                lastMessageRow.cells[2].innerHTML = messageTime;
-                lastMessageRow.cells[3].innerHTML = message.qos;
+                //lastMessageRow.cells[2].innerHTML = messageTime;
+                lastMessageRow.cells[2].innerHTML = message.qos;
             }
-
         }
 
 
@@ -330,28 +347,28 @@
             var qos = "1";
             var retain = false;
 
-            var statusSpan = document.getElementById("publishStatus");
-            statusSpan.innerHTML = 'publish: Topic: '+  topic + '. QoS: ' + qos + '. Message: ' + msg;
-            console.info('Publishing Message: Topic: ', topic, '. QoS: ' + qos + '. Message: ', msg);
-
+            // pub
             var message = new Paho.MQTT.Message(msg);
             message.destinationName = topic;
             message.qos = Number(qos);
             message.retained = retain;
             mqtt_client.send(message);
+
+            // show
+            updateLastMessageTable(message);
         }
 
         // 订阅topic
         function subscribe() {
-            var topic = document.getElementById("subscribeTopicInput").value;
-            var qos = document.getElementById("subscribeQosInput").value;
+            var topic = "tank1/data";
+            var qos = "1";
             console.info('Subscribing to: Topic: ', topic, '. QoS: ', qos);
             mqtt_client.subscribe(topic, { qos: Number(qos) });
         }
 
         // 取消订阅
         function unsubscribe() {
-            var topic = document.getElementById("subscribeTopicInput").value;
+            var topic = "tank1/data";
             console.info('Unsubscribing from ', topic);
             mqtt_client.unsubscribe(topic, {
                 onSuccess: unsubscribeSuccess,
@@ -384,15 +401,25 @@
         // 连接mqtt
         mqtt_connect();
 
+        
+
         // 刷新视频流
         var stream = document.getElementById("cameraStream");
         //stream.src = "http://192.168.0.102:81/stream";
         let  websocket = new WebSocket('ws://yanjingang.com:8079')
+        
+        var wsStatusSpan = document.getElementById("wsStatus");
+        wsStatusSpan.innerHTML = 'WS Connecting...';
 		websocket.addEventListener('open',function(){
-            console.log("connect to ws server")
+            console.log("connect to ws server");
+            wsStatusSpan.innerHTML = 'WS Connected!';
+		});
+		websocket.addEventListener('close',function(){
+            console.log("disconnect to ws server");
+            wsStatusSpan.innerHTML = 'WS Disconnected!';
 		});
         websocket.addEventListener('message',function(e){   //server pushg过来的二进制图片
-            console.log(e.data);
+            //console.log(e.data);
             // blob数据转base64格式
             var reader = new FileReader();
             reader.onload = function(e){
