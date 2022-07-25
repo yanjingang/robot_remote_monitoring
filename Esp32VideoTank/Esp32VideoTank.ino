@@ -27,7 +27,7 @@ void startCameraServer();
 
 
 // wifi设置
-const char* ssid = "MARS-Y";
+const char* ssid = "Mars"; //MARS-4G
 const char* password = "Lovezhu1314";
 
 // 网络时间获取
@@ -301,7 +301,7 @@ void loop() {
         Serial.print("Send Image to WsServer: len ");
         Serial.println(fb->len);
         esp_camera_fb_return(fb);
-      }*/
+      }
       // 异步推流任务
       taskStatus = 1; //任务执行中
       xTaskCreate(
@@ -311,6 +311,7 @@ void loop() {
         NULL,      // Parameter passed as input of the task
         1,         // Priority of the task.
         NULL);     // Task handle.
+      */
   }
 }
 
