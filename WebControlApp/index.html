@@ -165,7 +165,7 @@
             let control_x = Math.round((vx-x)/3); //相对中心点的偏移，/3是为了减少pub发送量
             let control_y = Math.round((y-vy)/3);
             console.log("ontouchmove: "+control_x+","+control_y);
-            if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 300 || (control_x==0 && control_x==0))){
+            if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 1000 || (control_x==0 && control_x==0))){
                 last_pub_time = Date.now();
                 publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+'}');    //+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
                 last_x = control_x;
@@ -180,7 +180,7 @@
             let control_x = 0; //中心点为0,0
             let control_y = 0;
             console.log("ontouchend: "+control_x+","+control_y);
-            if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 300 || (control_x==0 && control_x==0))){
+            if(mqtt_connected && (control_x != last_x || control_y != last_y) && (Date.now() - last_pub_time > 1000 || (control_x==0 && control_x==0))){
                 last_pub_time = Date.now();
                 publish("tank1/cmd", '{"x":'+control_x+',"y":'+control_y+',"ts":'+Math.round(Date.now()/1000)+'}');    //+',"t":"'+new Date().format("yyyy-MM-dd h:m:s")+'"}');
                 last_x = control_x;
