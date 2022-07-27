@@ -13,32 +13,29 @@
 
 
 // wifi设置
-const char* ssid = "MARS-4G";
+const char* ssid = "Mars.Y";
 const char* password = "Lovezhu1314";
 
 // 网络时间获取
-const char *ntpServer1 = "us.pool.ntp.org"; //网络时间服务器
-const char *ntpServer2 = "time2.cloud.tencent.com"; //网络时间服务器
-const char *ntpServer3 = "ntp1.aliyun.com"; //网络时间服务器
-const long gmtOffset_sec = 8 * 3600;    //时区设置函数，东八区（UTC/GMT+8:00）写成8*3600  
-const int daylightOffset_sec = 0;   //夏令时填写3600，否则填0
-unsigned long LAUNCH_TIMESTAMP = 0;  //网络接通时的世界时间戳
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "ntp.aliyun.com", 3600, 60000); //NTP地址
+const long gmtOffset_sec = 8 * 3600;    //时区设置函数，东八区（UTC/GMT+8:00）写成8*3600 
+unsigned long LAUNCH_TIMESTAMP = 0;  //网络接通时的世界时间戳
 
 
 // 马达参数
-int DC_LEFT1 = 16; // Left 1
-int DC_LEFT2 = 5;  // Left 2
-int DC_RIGHT1 = 4; // Right 1
-int DC_RIGHT2 = 14; // Right 2
+int DC_LEFT1 =  D1;  //io5; // Left 1
+int DC_LEFT2 =  D2;  //io4;  // Left 2
+int DC_RIGHT1 = D5; //io14; // Right 1
+int DC_RIGHT2 = D6; //io12; // Right 2
 String motorStatus = "";        //底盘当前状态
 String lastMotorStatus = "";   //底盘末次上报状态
 int PWM_SPEED_LEFT = 60;
 int PWM_SPEED_RIGHT = 60;
 
-// 定时器
-Ticker ticker;
+
+// 呼吸灯
+Ticker tickeLamp;
 int LED_PIN = LED_BUILTIN;  //D4 io2
 
 
@@ -63,11 +60,11 @@ void setup() {
   //Serial.println();
 
   
-  // 初始化马达引脚（注：esp板子LOW是走，HIGH是停止）
-  digitalWrite(D0, HIGH);   //io16
-  digitalWrite(D1, HIGH);   //io5
-  digitalWrite(D2, HIGH);   //io4
-  digitalWrite(D5, HIGH);   //io14 
+  // 初始化马达引脚（注：esp板子LOW是走，HIGH是停止；拔掉电驱引脚线会导致电驱转动的诡异现象）
+  digitalWrite(DC_LEFT1, HIGH);   //io5
+  digitalWrite(DC_LEFT2, HIGH);   //io4
+  digitalWrite(DC_RIGHT1, HIGH);   //io14
+  digitalWrite(DC_RIGHT2, HIGH);   //io12 
   analogWriteRange(100); 
   analogWriteFreq(50); 
   pinMode(DC_LEFT1, OUTPUT);
@@ -95,16 +92,9 @@ void setup() {
   LAUNCH_TIMESTAMP = timeClient.getEpochTime() - millis()/1000;  //获取时间戳-当前板子启动时间，作为初始时间
   struct tm *ptm = gmtime ((time_t *)&LAUNCH_TIMESTAMP);
   String currentDate = String(ptm->tm_year+1900) + "-" + String(ptm->tm_mon+1) + "-" + String(ptm->tm_mday) + " " + timeClient.getFormattedTime();
+  Serial.print("getWordTime: ");
   Serial.println(currentDate);
-  /*configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2, ntpServer3);
-  if(LAUNCH_TIMESTAMP == 0){
-    static char res[19] = "";
-    LAUNCH_TIMESTAMP = getWordTimestamp(res);
-    Serial.print("getWordTimestamp: ");
-    Serial.println(res);
-    Serial.println(LAUNCH_TIMESTAMP);
-    Serial.println("");
-  }*/
+  Serial.println("");
   
 
   // 连接mqtt
@@ -148,7 +138,7 @@ void setup() {
 
   // 初始化呼吸灯
   digitalWrite(LED_PIN, LOW); 
-  ticker.attach_ms(4000, breathingLamp);  //每4秒执行一次呼吸
+  tickeLamp.attach_ms(4000, breathingLamp);  //每4秒执行一次呼吸
    
 }
 
@@ -285,7 +275,7 @@ void onReceiveMessage(int messageSize) {
 
 
 // 执行底盘移动指令
-int pwmMax = 25;  //xy单方向的最大值
+int runMax = 25;  //xy单方向的最大值
 void runMotor(int x, int y) {
   Serial.print("runMotor :");
   Serial.print(x);
@@ -294,113 +284,73 @@ void runMotor(int x, int y) {
 
   //指令处理
   //  原点{"x":0,"y":0}, 前进y>0,后退y<0；右转x>0,左转x<0
-  if (y >= 2 && x >= 2) { //前+右
+  //  注意：esp板子LOW是走，HIGH是停；pwm调速值也同理，值越小速度越快。需要做反向处理
+  if (y >= 2 && x >= 2) { //右前
     motorStatus = "RightForward";
     Serial.println(motorStatus);
-    //forward + right 向前右转
-    /*PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT);   //pwm调速
-    PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT * (pwmMax - x)/pwmMax);   //pwm调速
-    PWM_Control(PWM_RIGHT2, 0);*/
-    analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //pwm调速
-    digitalWrite(DC_LEFT2, LOW);
-    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT * (pwmMax - x)/pwmMax);   //pwm调速
-    digitalWrite(DC_RIGHT2, LOW);
+    analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //满速
+    digitalWrite(DC_LEFT2, HIGH);
+    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT * (1 + x/runMax));   //pwm调速-减速（值越大速度越慢）
+    digitalWrite(DC_RIGHT2, HIGH);
   }
-  else if (y >= 2 && x <= -2) { //前+左
+  else if (y >= 2 && x <= -2) { //左前
     motorStatus = "LeftForward";
     Serial.println(motorStatus);
-    //forward + left 向前左转
-    /*PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT * (0 - x)/pwmMax);   //pwm调速
-    PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT);   //pwm调速
-    PWM_Control(PWM_RIGHT2, 0);*/
-    analogWrite(DC_LEFT1, PWM_SPEED_LEFT * (0 - x)/pwmMax);   //pwm调速
-    digitalWrite(DC_LEFT2, LOW);
-    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);   //pwm调速
-    digitalWrite(DC_RIGHT2, LOW);
+    analogWrite(DC_LEFT1, PWM_SPEED_LEFT * (1 + (0 - x)/runMax));   //pwm调速-减速（值越大速度越慢）
+    digitalWrite(DC_LEFT2, HIGH);
+    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);   //满速
+    digitalWrite(DC_RIGHT2, HIGH);
   }
-  else if (y <= -2 && x <= -2) { //后+左
+  else if (y <= -2 && x <= -2) { //左后
     motorStatus = "LeftBackward";
-    Serial.println(motorStatus);
-    //back + left 向左后转
-    /*PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT);
-    PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT * (0 - x)/pwmMax);*/
-    digitalWrite(DC_LEFT1, LOW);
-    analogWrite(DC_LEFT2, PWM_SPEED_LEFT);
-    digitalWrite(DC_RIGHT1, LOW);
-    analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT * (0 - x)/pwmMax);
+    digitalWrite(DC_LEFT1, HIGH);
+    analogWrite(DC_LEFT2, PWM_SPEED_LEFT);    //满速
+    digitalWrite(DC_RIGHT1, HIGH);
+    analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT * (1 + (0 - x)/runMax));  //pwm调速-减速（值越大速度越慢）
   }
-  else if (y <= -2 && x >= 2) { //后+右
+  else if (y <= -2 && x >= 2) { //右后
     motorStatus = "RightBackward";
     Serial.println(motorStatus);
-    //back + right 向右后转
-    /*PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT * (pwmMax - x)/pwmMax);
-    PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT);*/
-    digitalWrite(DC_LEFT1, LOW);
-    analogWrite(DC_LEFT2, PWM_SPEED_LEFT * (pwmMax - x)/pwmMax);
-    digitalWrite(DC_RIGHT1, LOW);
+    digitalWrite(DC_LEFT1, HIGH);
+    analogWrite(DC_LEFT2, PWM_SPEED_LEFT * (1 + x/runMax));     //pwm调速-减速（值越大速度越慢）
+    digitalWrite(DC_RIGHT1, HIGH);
     analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
   }
   else if (y >= 2) { //前
     motorStatus = "Forward";
     Serial.println(motorStatus);
-    /*PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT);   //pwm调速
-    PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT);   //pwm调速
-    PWM_Control(PWM_RIGHT2, 0);*/
-    analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //pwm调速
-    digitalWrite(DC_LEFT2, LOW);
-    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);   //pwm调速
-    digitalWrite(DC_RIGHT2, LOW);
+    analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //满速
+    digitalWrite(DC_LEFT2, HIGH);
+    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);   //满速
+    digitalWrite(DC_RIGHT2, HIGH);
   }
   else if (y <= -2) { //后
     motorStatus = "Backward";
     Serial.println(motorStatus);
-    /*PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT);
-    PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT);*/
-    digitalWrite(DC_LEFT1, LOW);
+    digitalWrite(DC_LEFT1, HIGH);
     analogWrite(DC_LEFT2, PWM_SPEED_LEFT);
-    digitalWrite(DC_RIGHT1, LOW);
+    digitalWrite(DC_RIGHT1, HIGH);
     analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
   }
   else if (x <= -2) { //左
     motorStatus = "TurnLeft";
     Serial.println(motorStatus);
-    /*PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, PWM_SPEED_LEFT);
-    PWM_Control(PWM_RIGHT1, PWM_SPEED_RIGHT);
-    PWM_Control(PWM_RIGHT2, 0);*/
-    digitalWrite(DC_LEFT1, LOW);
+    digitalWrite(DC_LEFT1, HIGH);
     analogWrite(DC_LEFT2, PWM_SPEED_LEFT);
     analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);
-    digitalWrite(DC_RIGHT2, LOW);
+    digitalWrite(DC_RIGHT2, HIGH);
   }
   else if (x >= 2) { //右
     motorStatus = "TurnRight";
     Serial.println(motorStatus);
-    /*PWM_Control(PWM_LEFT1, PWM_SPEED_LEFT);   //pwm调速
-    PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, PWM_SPEED_RIGHT);*/
     analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //pwm调速
-    digitalWrite(DC_LEFT2, LOW);
-    digitalWrite(DC_RIGHT1, LOW);
+    digitalWrite(DC_LEFT2, HIGH);
+    digitalWrite(DC_RIGHT1, HIGH);
     analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
   }
   else if (y == 0 && x == 0) {  //停（注：esp的板子需要所有输出HIGH才是停）
     motorStatus = "Stop";
     Serial.println(motorStatus);
-    /*PWM_Control(PWM_LEFT1, 0);
-    PWM_Control(PWM_LEFT2, 0);
-    PWM_Control(PWM_RIGHT1, 0);
-    PWM_Control(PWM_RIGHT2, 0);*/
     digitalWrite(DC_LEFT1, HIGH);
     digitalWrite(DC_LEFT2, HIGH);
     digitalWrite(DC_RIGHT1, HIGH);
