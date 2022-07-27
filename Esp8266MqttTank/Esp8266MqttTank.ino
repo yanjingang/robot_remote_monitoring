@@ -285,7 +285,7 @@ void runMotor(int x, int y) {
   //指令处理
   //  原点{"x":0,"y":0}, 前进y>0,后退y<0；右转x>0,左转x<0
   //  注意：esp板子LOW是走，HIGH是停；pwm调速值也同理，值越小速度越快。需要做反向处理
-  if (y >= 2 && x >= 2) { //右前
+  if (y >= 5 && x >= 5) { //右前
     motorStatus = "RightForward";
     Serial.println(motorStatus);
     analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //满速
@@ -293,7 +293,7 @@ void runMotor(int x, int y) {
     analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT * (1 + x/runMax));   //pwm调速-减速（值越大速度越慢）
     digitalWrite(DC_RIGHT2, HIGH);
   }
-  else if (y >= 2 && x <= -2) { //左前
+  else if (y >= 5 && x <= -5) { //左前
     motorStatus = "LeftForward";
     Serial.println(motorStatus);
     analogWrite(DC_LEFT1, PWM_SPEED_LEFT * (1 + (0 - x)/runMax));   //pwm调速-减速（值越大速度越慢）
@@ -301,14 +301,14 @@ void runMotor(int x, int y) {
     analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);   //满速
     digitalWrite(DC_RIGHT2, HIGH);
   }
-  else if (y <= -2 && x <= -2) { //左后
+  else if (y <= -5 && x <= -5) { //左后
     motorStatus = "LeftBackward";
     digitalWrite(DC_LEFT1, HIGH);
     analogWrite(DC_LEFT2, PWM_SPEED_LEFT);    //满速
     digitalWrite(DC_RIGHT1, HIGH);
     analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT * (1 + (0 - x)/runMax));  //pwm调速-减速（值越大速度越慢）
   }
-  else if (y <= -2 && x >= 2) { //右后
+  else if (y <= -5 && x >= 5) { //右后
     motorStatus = "RightBackward";
     Serial.println(motorStatus);
     digitalWrite(DC_LEFT1, HIGH);
@@ -316,7 +316,7 @@ void runMotor(int x, int y) {
     digitalWrite(DC_RIGHT1, HIGH);
     analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
   }
-  else if (y >= 2) { //前
+  else if (y >= 5) { //前
     motorStatus = "Forward";
     Serial.println(motorStatus);
     analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //满速
@@ -324,7 +324,7 @@ void runMotor(int x, int y) {
     analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);   //满速
     digitalWrite(DC_RIGHT2, HIGH);
   }
-  else if (y <= -2) { //后
+  else if (y <= -5) { //后
     motorStatus = "Backward";
     Serial.println(motorStatus);
     digitalWrite(DC_LEFT1, HIGH);
@@ -332,7 +332,7 @@ void runMotor(int x, int y) {
     digitalWrite(DC_RIGHT1, HIGH);
     analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
   }
-  else if (x <= -2) { //左
+  else if (x <= -5) { //左
     motorStatus = "TurnLeft";
     Serial.println(motorStatus);
     digitalWrite(DC_LEFT1, HIGH);
@@ -340,7 +340,7 @@ void runMotor(int x, int y) {
     analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);
     digitalWrite(DC_RIGHT2, HIGH);
   }
-  else if (x >= 2) { //右
+  else if (x >= 5) { //右
     motorStatus = "TurnRight";
     Serial.println(motorStatus);
     analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //pwm调速
