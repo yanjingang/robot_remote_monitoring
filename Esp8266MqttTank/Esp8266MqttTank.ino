@@ -31,7 +31,7 @@ int DC_RIGHT2 = D6; //io12; // Right 2
 String motorStatus = "";        //底盘当前状态
 String lastMotorStatus = "";   //底盘末次上报状态
 int PWM_SPEED_LEFT = 60;
-int PWM_SPEED_RIGHT = 60;
+int PWM_SPEED_RIGHT = 61;     //右轮需要慢点
 
 
 // 呼吸灯
@@ -314,7 +314,7 @@ void runMotor(int x, int y) {
     digitalWrite(DC_LEFT1, HIGH);
     analogWrite(DC_LEFT2, PWM_SPEED_LEFT * (1 + x/runMax));     //pwm调速-减速（值越大速度越慢）
     digitalWrite(DC_RIGHT1, HIGH);
-    analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
+    analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);    //满速
   }
   else if (y >= 5) { //前
     motorStatus = "Forward";
@@ -336,17 +336,17 @@ void runMotor(int x, int y) {
     motorStatus = "TurnLeft";
     Serial.println(motorStatus);
     digitalWrite(DC_LEFT1, HIGH);
-    analogWrite(DC_LEFT2, PWM_SPEED_LEFT);
-    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT);
+    analogWrite(DC_LEFT2, PWM_SPEED_LEFT * 1.1);    //横向控制需要慢点
+    analogWrite(DC_RIGHT1, PWM_SPEED_RIGHT * 1.1);
     digitalWrite(DC_RIGHT2, HIGH);
   }
   else if (x >= 5) { //右
     motorStatus = "TurnRight";
     Serial.println(motorStatus);
-    analogWrite(DC_LEFT1, PWM_SPEED_LEFT);   //pwm调速
+    analogWrite(DC_LEFT1, PWM_SPEED_LEFT * 1.1);   //横向控制需要慢点
     digitalWrite(DC_LEFT2, HIGH);
     digitalWrite(DC_RIGHT1, HIGH);
-    analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT);
+    analogWrite(DC_RIGHT2, PWM_SPEED_RIGHT * 1.1);
   }
   else if (y == 0 && x == 0) {  //停（注：esp的板子需要所有输出HIGH才是停）
     motorStatus = "Stop";

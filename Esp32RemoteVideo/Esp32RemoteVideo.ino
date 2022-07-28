@@ -23,7 +23,7 @@
 
 
 // wifi设置
-const char* SSID = "MARS-Y"; //MARS-4G
+const char* SSID = "Mars.Y"; //MARS-4G
 const char* PASSWD = "Lovezhu1314";
 
 
