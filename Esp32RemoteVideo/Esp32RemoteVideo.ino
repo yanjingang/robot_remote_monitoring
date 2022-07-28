@@ -40,7 +40,7 @@ int LED_PIN = 33; // RST按钮旁板载红色LED
 
 // ws视频流server
 const char* socket_url = "yanjingang.com";
-int socket_port = 8079; //8878;
+int socket_port = 8878; //8079;
 WebSocketsClient webSocket;
 long lastSendStream = 0;   //末次上报时间
 int socketStatus = 0;      //ws连接状态(0未连接，1已连接)
