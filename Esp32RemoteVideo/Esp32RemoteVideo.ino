@@ -7,7 +7,8 @@
 #include <WiFi.h>
 #include "Arduino.h"
 #include <WebSocketsClient.h>   //需安装ws库：https://www.arduinolibraries.info/libraries/web-sockets
-
+//#include <ArduinoMqttClient.h>
+//#include "base64.h"
 
 
 // 相机设置
@@ -22,8 +23,8 @@
 
 
 // wifi设置
-const char* ssid = "Mars.Y"; //MARS-4G
-const char* password = "Lovezhu1314";
+const char* SSID = "MARS-Y"; //MARS-4G
+const char* PASSWD = "Lovezhu1314";
 
 
 // 相机引脚
@@ -44,6 +45,18 @@ WebSocketsClient webSocket;
 long lastSendStream = 0;   //末次上报时间
 int socketStatus = 0;      //ws连接状态(0未连接，1已连接)
 int streamTaskStatus = 0;  //task状态(0未执行，1执行中)
+
+/*
+// mqtt参数
+WiFiClient wifiClient;
+MqttClient mqttClient(wifiClient);
+const char broker[] = "ahytdaa.iot.gz.baidubce.com";
+int port = 1883;
+const char userName[] = "thingidp@ahytdaa|cam1|0|MD5";      //{adp_type}@{IoTCoreId}|{DeviceKey}|{timestamp}|{algorithm_type}
+const char passWord[] = "c2e73ae81a590671851b0dd6a3ebf4cc"; //md5({device_key}&{timestamp}&{algorithm_type}{device_secret})
+const char clientId[] = "esp32-cam1";     // uniqut
+const char pubTopic[]  = "cam1/stream";  // 注意：baidu iotcore的自定义topic不能以'/'开头!
+*/
 
 
 void setup() {
@@ -99,7 +112,7 @@ void setup() {
 
 
   // 连接wifi
-  WiFi.begin(ssid, password);
+  WiFi.begin(SSID, PASSWD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -118,12 +131,27 @@ void setup() {
 
   
   // 视频流推送ws服务器初始化
-  webSocket.begin(socket_url,socket_port);
+  webSocket.begin(socket_url, socket_port);
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000);
   webSocket.enableHeartbeat(15000, 3000, 2); 
   
-  
+
+  /*
+  // 连接mqtt
+  mqttClient.setId(clientId);
+  mqttClient.setUsernamePassword(userName, passWord);
+  //mqttClient.setTxPayloadSize(512);  //默认只能发256字节，需要调大buf区大小
+  while (!mqttClient.connect(broker, port)) {
+    Serial.print("MQTT connection failed! Error code = ");
+    Serial.println(mqttClient.connectError());
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println("MQTT connected!\n");
+  */
+
+
   // 红led灯点亮
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
@@ -134,7 +162,7 @@ void setup() {
 void loop() {
   // 推送视频流到WS服务器
   webSocket.loop();
-  uint64_t now = millis();
+  uint64_t now = millis();  
   if(now - lastSendStream > 100 && socketStatus && streamTaskStatus==0) { //仅在连接ws 且 无其他异步任务执行时运行
       lastSendStream = now;
       /*// 同步推流
@@ -177,47 +205,25 @@ void sendStream(void *parameter){
       Serial.print("Send Image to WsServer: len ");
       Serial.println(fb->len);
     }
+    /*
+    String base64Buf = base64::encode(fb->buf, fb->len); 
+    mqttClient.beginMessage(pubTopic);
+    mqttClient.print(base64Buf);
+    int ret = mqttClient.endMessage();
+    Serial.print("Send Image to MQTT: ret=");
+    Serial.print(ret);
+    Serial.print(" len=");
+    Serial.println(base64Buf.length());
+    //Serial.println(base64Buf);
+    */
+    
     esp_camera_fb_return(fb);
   }
-  
-  //vTaskDelay(100 / portTICK_RATE_MS);
 
   streamTaskStatus=0; //当前任务结束
-  
   vTaskDelete(NULL);
-  
 }
 
-
-// 获取世界时间
-time_t getWordTimestamp(char *res){
-    //static char res[19];
-    
-    // get time
-    struct tm timeinfo;
-    int ms = 5000; //超时时间
-    if (!getLocalTime(&timeinfo, ms)){
-        Serial.println("Failed to getLocalTime.");
-        return 0;
-    }
-    //Serial.println(&timeinfo, "%F %T %A"); // 格式化输出
-    
-    // format time
-    time_t timep = mktime(&timeinfo);
-    //Serial.println(timep);
-    
-    // format time
-    sprintf(res, "%d-%.2d-%.2d %.2d:%.2d:%.2d",
-              timeinfo.tm_year + 1900,
-              timeinfo.tm_mon + 1,
-              timeinfo.tm_mday, 
-              timeinfo.tm_hour,
-              timeinfo.tm_min, 
-              timeinfo.tm_sec);
-    //Serial.println(res);
-    
-    return timep;
-}
 
 // 视频流ws server事件
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
