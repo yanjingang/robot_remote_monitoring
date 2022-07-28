@@ -45,10 +45,10 @@ class CamServer
         $this->server->on("start", [$this, 'onStart']);
         $this->server->on('open', [$this, 'onWsOpen']);
         $this->server->on('task', [$this, 'onTask']);
-        $this->server->on('finish', [$this, 'onTaskFinish']);
+        //$this->server->on('finish', [$this, 'onTaskFinish']);
         $this->server->on('message', [$this, 'onWsMessage']);
         $this->server->on('close', [$this, 'onWsClose']);
-        $this->server->on('request', [$this, 'onHttpRequest']);
+        //$this->server->on('request', [$this, 'onHttpRequest']);
         
         //启动ws/http服务
         $this->server->start();
@@ -122,7 +122,7 @@ class CamServer
         
         switch ($action) {
             case "videoStream":
-                $this->log("onTask [$action] action ...");
+                //$this->log("onTask [$action] action ...");
                 //找到需要分发的fd
                 if ($this->wsFds->count()) {
                     foreach ($this->wsFds as $key => $val) {
