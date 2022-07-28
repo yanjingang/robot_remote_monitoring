@@ -99,7 +99,7 @@ class CamServer
      * @param $frame
      */
     public function onWsMessage($serv, $frame){
-        $this->log('onWsMessage...  frame: '. var_export($frame, true));
+        $this->log('onWsMessage...  fd: '. $frame->fd);
         // 转发数据给其他连接者
         $this->server->task(['action'=>'videoStream','fd' => $frame->fd, 'hid' => 1, 'data' => $frame->data]);
     }
@@ -138,7 +138,7 @@ class CamServer
                 $this->log('onTask action not found! ');
         }
 
-        return $data; // 告诉worker  -> onTaskFinish
+        return $task_id; // 告诉worker-> onTaskFinish
     }
 
 
@@ -192,7 +192,7 @@ class CamServer
      * @param $msg 
      * @return 
      */
-    public function log($msg, $file='server'){
+    public function log($msg, $file='cam'){
         $f = fopen($file . '.log', 'a+');
         fwrite($f, date('Y-m-d H:i:s') ."\t". $msg."\n");
         fclose($f);
