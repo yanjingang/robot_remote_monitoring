@@ -30,7 +30,7 @@ $server->on('message', function (swoole_websocket_server $server, $frame) use($r
     $str = json_decode($redis->get("fd"), true);
     foreach ($str as $key => $value) {
         if($frame->fd != $value){
-            $server->push($value,$frame->data,WEBSOCKET_OPCODE_BINARY);
+            $server->push($value, $frame->data, WEBSOCKET_OPCODE_BINARY);
         }
     }
 });

@@ -117,7 +117,6 @@ class CamServer
         $action = $data['action'];
         $fd = $data['fd'];
         $hid = $data['hid'];
-        $data = $data['data'];      
         $fdinfo = $serv->connection_info($fd);
         $this->log("onTask. task_id: $task_id action: $action  hid: $hid  fdinfo:" . var_export($fdinfo, true));
         
@@ -128,7 +127,7 @@ class CamServer
                 if ($this->wsFds->count()) {
                     foreach ($this->wsFds as $key => $val) {
                         if ($val['hid'] == $hid && $key != $fd) {  //监听1设备数据的非自身客户端
-                            $this->server->push($key, $data);
+                            $this->server->push($key, $data['data'], WEBSOCKET_OPCODE_BINARY);
                             $this->log("onTask [$action] action.  push ws fd [{$key}] ...");
                         }
                     }
