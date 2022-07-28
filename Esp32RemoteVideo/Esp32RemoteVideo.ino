@@ -40,7 +40,7 @@ int LED_PIN = 33; // RST按钮旁板载红色LED
 
 // ws视频流server
 const char* socket_url = "yanjingang.com";
-int socket_port = 8079;
+int socket_port = 8079; //8878;
 WebSocketsClient webSocket;
 long lastSendStream = 0;   //末次上报时间
 int socketStatus = 0;      //ws连接状态(0未连接，1已连接)
@@ -228,24 +228,25 @@ void sendStream(void *parameter){
 // 视频流ws server事件
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
   switch(type) {
-    case WStype_DISCONNECTED:
+    case WStype_DISCONNECTED: //接收到连接断开消息
         socketStatus = 0;
         Serial.printf("[WS] Disconnected!\n");
         break;
-    case WStype_CONNECTED: 
+    case WStype_CONNECTED:  //接收到连接成功消息
         socketStatus = 1;
         Serial.printf("[WS] Connected to url: %s\n", payload);
         webSocket.sendTXT("camlogin");
         break;
-    case WStype_TEXT:
+    case WStype_TEXT: //接收到文本消息
         Serial.printf("[WS] get text: %s\n", payload);
         break;
-    case WStype_BIN:
+    case WStype_BIN:  //接收到二进制流消息
+        Serial.printf("[WS] get bin\n");
         break;
-    case WStype_PING:
+    case WStype_PING: // 当接收到服务器发送来的PING消息，会自动向服务器发送PONG消息
         Serial.printf("[WS] get ping\n");
         break;
-    case WStype_PONG:
+    case WStype_PONG: // 客户端向服务器发送PING消息后，服务器会向客户端发送PONG消息
         Serial.printf("[WS] get pong\n");
         break;
     }
