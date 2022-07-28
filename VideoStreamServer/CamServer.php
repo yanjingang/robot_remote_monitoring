@@ -36,7 +36,7 @@ class CamServer
         $this->server = new \swoole_websocket_server($this->HOST, $this->wsPort);
         $this->server->set([
             'daemonize' => true,    //后台运行(systemd时请勿设置)
-            'work_num' => 10,       //开启worker进程数量
+            'work_num' => 5,       //开启worker进程数量
             'max_request' => 20,    //每个worker进程的最大任务数. 一个worker进程在处理完超过此数值的任务后将自动退出，进程退出后会释放所有内存和资源并被重新拉起。
             'task_worker_num' => 10, //开启异步task进程数量
             'log_level' => SWOOLE_LOG_TRACE,
@@ -45,7 +45,7 @@ class CamServer
         $this->server->on("start", [$this, 'onStart']);
         $this->server->on('open', [$this, 'onWsOpen']);
         $this->server->on('task', [$this, 'onTask']);
-        //$this->server->on('finish', [$this, 'onTaskFinish']);
+        $this->server->on('finish', [$this, 'onTaskFinish']);
         $this->server->on('message', [$this, 'onWsMessage']);
         $this->server->on('close', [$this, 'onWsClose']);
         //$this->server->on('request', [$this, 'onHttpRequest']);
@@ -117,8 +117,8 @@ class CamServer
         $action = $data['action'];
         $fd = $data['fd'];
         $hid = $data['hid'];
-        $fdinfo = $serv->connection_info($fd);
-        $this->log("onTask. task_id: $task_id action: $action  hid: $hid  fdinfo:" . var_export($fdinfo, true));
+        //$fdinfo = $serv->connection_info($fd);
+        $this->log("onTask. task_id: $task_id action: $action  hid: $hid  fid: $fid");// fdinfo:" . var_export($fdinfo, true));
         
         switch ($action) {
             case "videoStream":
