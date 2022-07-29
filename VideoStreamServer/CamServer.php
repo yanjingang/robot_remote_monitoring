@@ -1,6 +1,6 @@
 <?php
 /**
- * tcp/websocket 长链接server
+ * 基于ws的视频流分发 server
  * 
  * 启动：
  *  php CamServer.php
