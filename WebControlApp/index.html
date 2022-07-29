@@ -96,7 +96,7 @@
                 <tr>
                     <th>Topic</th>
                     <th>Data</th>
-                    <th>QoS</th>
+                    <th>Delay</th>
                 </tr>
             </thead>
             <tbody>
@@ -220,7 +220,7 @@
             } else {
                 mqtt_client = new Paho.MQTT.Client(hostname, Number(port), clientId);
             }
-            console.info('MQTT Connecting to Server: Hostname: ', hostname, '. Port: ', port, '. Path: ', mqtt_client.path, '. Client ID: ', clientId);
+            console.info('MQTT Connecting: Host=' + hostname + ' Port=' + port);    // + ' Path=' + mqtt_client.path + ' ClientID=' + clientId);
 
             // set callback handlers
             mqtt_client.onConnectionLost = onConnectionLost;
@@ -253,7 +253,7 @@
 
             // connect the
             mqtt_client.connect(options);
-            console.info('MQTT connecting...');
+            //console.info('MQTT connecting...');
 
             var statusSpan = document.getElementById("mqttStatus");
             statusSpan.innerHTML = 'MQTT Connecting...';
@@ -318,6 +318,7 @@
 
         // 更新最后pub/sub信息显示
         function updateLastMessageTable(message){
+            var data = JSON.parse(message.payloadString);
             // show msg
             if (!document.getElementById(message.destinationName)) {
                 var lastMessageTable = document.getElementById("lastMessageTable").getElementsByTagName('tbody')[0];
@@ -326,7 +327,7 @@
                 newlastMessageRow.insertCell(0).innerHTML = message.destinationName;
                 newlastMessageRow.insertCell(1).innerHTML = safe_tags_regex(message);
                 //newlastMessageRow.insertCell(2).innerHTML = messageTime;
-                newlastMessageRow.insertCell(2).innerHTML = message.qos;
+                newlastMessageRow.insertCell(2).innerHTML = Math.round((Date.now()/1000 - data['ts'])*100)/100;  //message.qos;
 
             } else {
                 // Update Last Message Table
@@ -335,7 +336,7 @@
                 lastMessageRow.cells[0].innerHTML = message.destinationName;
                 lastMessageRow.cells[1].innerHTML = safe_tags_regex(message);
                 //lastMessageRow.cells[2].innerHTML = messageTime;
-                lastMessageRow.cells[2].innerHTML = message.qos;
+                lastMessageRow.cells[2].innerHTML = Math.round((Date.now()/1000 - data['ts'])*100)/100;  //message.qos;
             }
         }
 
@@ -406,18 +407,27 @@
         // 刷新视频流
         var stream = document.getElementById("cameraStream");
         //stream.src = "http://192.168.0.102:81/stream";
-        let  websocket = new WebSocket('ws://yanjingang.com:8878'); //8079
+
+        var wsHost = 'yanjingang.com';
+        var wsPort = '8878'; //8079
+        let  websocket = new WebSocket('ws://'+wsHost+':'+wsPort);
         //websocket.binaryType = 'arraybuffer';   //二进制传输
+        console.info('WS Connecting: Host=' + wsHost + ' Port=' + wsPort);
+
         
         var wsStatusSpan = document.getElementById("wsStatus");
         wsStatusSpan.innerHTML = 'WS Connecting...';
 		websocket.addEventListener('open',function(){
-            console.log("connect to ws server");
+            console.log("WS Connected!");
             wsStatusSpan.innerHTML = 'WS Connected!';
 		});
 		websocket.addEventListener('close',function(){
-            console.log("disconnect to ws server");
+            console.log("WS Disconnected!");
             wsStatusSpan.innerHTML = 'WS Disconnected!';
+            
+            // retry
+            console.log(".");
+            websocket = new WebSocket('ws://'+wsHost+':'+wsPort);
 		});
         websocket.addEventListener('message',function(e){   //server pushg过来的二进制图片
             //console.log(e.data);
