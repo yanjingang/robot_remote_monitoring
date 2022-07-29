@@ -18,6 +18,18 @@
               position: absolute;
           }
 
+          .ws_status {
+              width: 10px;
+              height: 10px;
+              background: rgb(235, 37, 37);
+              border-radius: 100%;
+              position: absolute;
+              top: 32px;
+              right: 1%;
+              margin-left: -25px;
+              margin-top: -25px;
+          }
+
           .control_cricle {
               width: 200px;
               height: 200px;
@@ -53,18 +65,6 @@
               margin-top: -100PX;
           }
           
-          .mqtt_info {
-              position: absolute;
-              top: 310px;
-              left: 50%;
-              margin-left: -60px;
-          }
-          .ws_info {
-              position: absolute;
-              top: 330px;
-              left: 50%;
-              margin-left: -60px;
-          }
           .msg_info {
               position: absolute;
               top: 560px;
@@ -80,16 +80,12 @@
   <body>
     <img class="camera_stream" id="cameraStream" src="">
 
-    <div class="control_cricle"></div>
+    <div class="ws_status" id="wsStatus"></div>
+
+    <div class="control_cricle" id="mqttStatus"></div>
     <div class="control_pos"></div>
     <div class="control_area"></div>
 
-    <div class="mqtt_info">
-        <span id="mqttStatus"></span>
-    </div>
-    <div class="ws_info">
-        <span id="wsStatus"></span>
-    </div>
     <div class="msg_info">
         <table class="table table-hover table-condensed tableSection" id="lastMessageTable">
             <thead>
@@ -198,6 +194,7 @@
         // Create a mqtt_client instance
         mqtt_client = null;
         mqtt_connected = false;
+        var mqttStatusDiv = $('#mqttStatus');  // mqtt状态提示
         
         // 连接mqtt
         function mqtt_connect() {
@@ -255,36 +252,32 @@
             mqtt_client.connect(options);
             //console.info('MQTT connecting...');
 
-            var statusSpan = document.getElementById("mqttStatus");
-            statusSpan.innerHTML = 'MQTT Connecting...';
+            mqttStatusDiv.css('background', 'rgba(243, 138, 119)');   //红色-连接中
         }
 
         // 断开mqtt
         function mqtt_disconnect() {
             console.info('MQTT Disconnecting from Server');
             mqtt_client.disconnect();
-            var statusSpan = document.getElementById("mqttStatus");
-            statusSpan.innerHTML = 'MQTT Disconnected.';
             mqtt_connected = false;
+            mqttStatusDiv.css('background', 'rgba(235, 37, 37)');   //红色-连接失败
         }
 
         // 连接成功时的回调
         function onConnect(context) {
-            // Once a connection has been made, make a subscription and send a message.
-            console.log("MQTT Client Connected");
-            var statusSpan = document.getElementById("mqttStatus");
-            statusSpan.innerHTML = "MQTT Connected! ";    // + context.invocationContext.clientId;    //context.invocationContext.host + ':' + context.invocationContext.port + context.invocationContext.path + ' as ' + 
             mqtt_connected = true;
+            console.log("MQTT Client Connected");
+            mqttStatusDiv.css('background', 'rgba(114, 176, 210, 0.5)');   //蓝色-连接成功
+            //document.getElementById("mqttStatus").innerHTML = "MQTT Connected! ";    // + context.invocationContext.clientId;    //context.invocationContext.host + ':' + context.invocationContext.port + context.invocationContext.path + ' as ' + 
             
             //启动订阅
             subscribe();
         }
         // 连接失败时的回调
         function onFail(context) {
-            console.log("MQTT Failed to connect");
-            var statusSpan = document.getElementById("mqttStatus");
-            statusSpan.innerHTML = "MQTT Failed to connect: " + context.errorMessage;
             mqtt_connected = false;
+            console.log("MQTT Failed to connect: " + context.errorMessage);
+            mqttStatusDiv.css('background', 'rgba(235, 37, 37)');   //红色-连接失败
             
             // retry
             console.log(".");
@@ -293,11 +286,11 @@
         // 断开连接时的回调
         function onConnectionLost(responseObject) {
             mqtt_connected = false;
-            var statusSpan = document.getElementById("mqttStatus");
-            statusSpan.innerHTML = "MQTT Connection Lost!";
             if (responseObject.errorCode !== 0) {
                 console.log("MQTT Connection Lost: " + responseObject.errorMessage);
             }
+            mqttStatusDiv.css('background', 'rgba(235, 37, 37)');   //红色-连接失败
+
             // retry
             console.log(".");
             mqtt_connect();
@@ -415,15 +408,14 @@
         console.info('WS Connecting: Host=' + wsHost + ' Port=' + wsPort);
 
         
-        var wsStatusSpan = document.getElementById("wsStatus");
-        wsStatusSpan.innerHTML = 'WS Connecting...';
+        var wsStatusDiv = $('#wsStatus');  // ws提示（右上角圆点）
 		websocket.addEventListener('open',function(){
             console.log("WS Connected!");
-            wsStatusSpan.innerHTML = 'WS Connected!';
+            wsStatusDiv.css('background', 'rgb(63, 199, 10)'); //绿色-连接中
 		});
 		websocket.addEventListener('close',function(){
             console.log("WS Disconnected!");
-            wsStatusSpan.innerHTML = 'WS Disconnected!';
+            wsStatusDiv.css('background', 'rgb(235, 37, 37)'); //红色-断连
             
             // retry
             console.log(".");
