@@ -118,7 +118,7 @@ class CamServer
         $fd = $data['fd'];
         $hid = $data['hid'];
         //$fdinfo = $serv->connection_info($fd);
-        $this->log("onTask. task_id: $task_id action: $action  hid: $hid  fid: $fid");// fdinfo:" . var_export($fdinfo, true));
+        $this->log("onTask. task_id: $task_id action: $action  hid: $hid  fd: $fd");// fdinfo:" . var_export($fdinfo, true));
         
         switch ($action) {
             case "videoStream":
