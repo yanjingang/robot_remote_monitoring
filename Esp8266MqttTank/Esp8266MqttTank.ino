@@ -13,7 +13,7 @@
 
 
 // wifi设置
-const char* ssid = "Mars.Y";
+const char* ssid = "MARS-Y";
 const char* password = "Lovezhu1314";
 
 // 网络时间获取
