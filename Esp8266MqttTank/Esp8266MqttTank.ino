@@ -18,7 +18,7 @@ const char* password = "Lovezhu1314";
 
 // 网络时间获取
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "ntp.aliyun.com", 3600, 60000); //NTP地址
+NTPClient timeClient(ntpUDP, "ntp.aliyun.com", 0, 60000); //NTP地址
 const long gmtOffset_sec = 8 * 3600;    //时区设置函数，东八区（UTC/GMT+8:00）写成8*3600 
 unsigned long LAUNCH_TIMESTAMP = 0;  //网络接通时的世界时间戳
 
@@ -31,7 +31,7 @@ int DC_RIGHT2 = D6; //io12; // Right 2
 String motorStatus = "";        //底盘当前状态
 String lastMotorStatus = "";   //底盘末次上报状态
 int PWM_SPEED_LEFT = 60;
-int PWM_SPEED_RIGHT = 61;     //右轮需要慢点
+int PWM_SPEED_RIGHT = 60;     //右轮需要慢点
 
 
 // 呼吸灯
@@ -87,13 +87,15 @@ void setup() {
   
   // 世界时间同步
   timeClient.begin();
-  timeClient.setTimeOffset(gmtOffset_sec); //+1区，偏移3600，+8区，偏移3600*8
+  //timeClient.setTimeOffset(gmtOffset_sec); //+1区，偏移3600，+8区，偏移3600*8
   timeClient.update();
   LAUNCH_TIMESTAMP = timeClient.getEpochTime() - millis()/1000;  //获取时间戳-当前板子启动时间，作为初始时间
-  struct tm *ptm = gmtime ((time_t *)&LAUNCH_TIMESTAMP);
-  String currentDate = String(ptm->tm_year+1900) + "-" + String(ptm->tm_mon+1) + "-" + String(ptm->tm_mday) + " " + timeClient.getFormattedTime();
+  //struct tm *ptm = gmtime ((time_t *)&LAUNCH_TIMESTAMP);
+  //String currentDate = String(ptm->tm_year) + "-" + String(ptm->tm_mon) + "-" + String(ptm->tm_mday) + " " + timeClient.getFormattedTime();
   Serial.print("getWordTime: ");
-  Serial.println(currentDate);
+  //Serial.print(currentDate);
+  //Serial.print(" ");
+  Serial.println(LAUNCH_TIMESTAMP);
   Serial.println("");
   
 
