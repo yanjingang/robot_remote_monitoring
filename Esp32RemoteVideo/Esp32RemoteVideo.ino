@@ -23,7 +23,7 @@
 
 
 // wifi设置
-const char* SSID = "MARS-Y"; //MARS-4G
+const char* SSID = "Mars.Y"; //MARS-4G
 const char* PASSWD = "Lovezhu1314";
 
 
@@ -86,9 +86,9 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_HQVGA; //XGA(1024x768)、SVGA(800x600)、VGA(640x480)、CIF(400x296)、QVGA(320x240)、HQVGA(240x176)、QQVGA(160x120)
-  config.jpeg_quality = 10;
-  config.fb_count = 1;
+  config.frame_size = FRAMESIZE_QQVGA; //XGA(1024x768)、SVGA(800x600)、VGA(640x480)、CIF(400x296)、QVGA(320x240)、HQVGA(240x176)、QQVGA(160x120)
+  config.jpeg_quality = 10;  // 1-12
+  config.fb_count = 2;
 
 
   // 相机初始化 camera init
@@ -133,8 +133,8 @@ void setup() {
   // 视频流推送ws服务器初始化
   webSocket.begin(socket_url, socket_port);
   webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000);
-  webSocket.enableHeartbeat(15000, 3000, 2); 
+  //webSocket.setReconnectInterval(1000);
+  //webSocket.enableHeartbeat(15000, 3000, 2); 
   
 
   /*
